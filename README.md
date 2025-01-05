@@ -8,4 +8,4 @@ This is an attemps to provide Linux platforms with something similar to what the
 
 ## Current state
 
-WIP
+GUI prototype
