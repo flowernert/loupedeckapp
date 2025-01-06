@@ -1,5 +1,5 @@
 import LdDialog
-from LdDialog import ConfigCmd
+from LdDialog import ConfigCmd, ConfigImg
 from LdConfiguration import LdConfiguration
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout
@@ -34,16 +34,19 @@ class Loupedeck (QWidget):
       displayL = Display("dis." + str(row+1) + " Left")
       displayL.setObjectName("dis%sL" % (row+1))
       displayL.cmd_edit.clicked.connect(self.choose_action)
+      displayL.img_edit.clicked.connect(self.choose_image)
       layout.addWidget(displayL, row, 1)
 
       buttons = [TouchButton("but. " + str(row+1) + " " + str(col+1)) for col in range(4)]
       _ = [buttons[col].setObjectName("tb%i%i" % (row+1, col+1)) for col in range(4)]
       _ = [buttons[col].cmd_edit.clicked.connect(self.choose_action) for col in range(4)]
+      _ = [buttons[col].img_edit.clicked.connect(self.choose_image) for col in range(4)]
       _ = [layout.addWidget(buttons[col], row, col+2) for col in range(4)]
 
       displayR = Display("dis. " + str(row+1) + " Right")
       displayR.setObjectName("dis%sL" % (row+1))
       displayR.cmd_edit.clicked.connect(self.choose_action)
+      displayR.img_edit.clicked.connect(self.choose_image)
       layout.addWidget(displayR, row, 6)
 
       encoderR = Encoder("enc. " + str(row+1) + " Right")
@@ -65,7 +68,13 @@ class Loupedeck (QWidget):
     
     
   def choose_image(self):
-      pass
+    sender_id = self.sender().parent().objectName()
+    dialog = ConfigImg(self.sender().parent())
+    print("choose_image called")
+    if (dialog.exec()):
+      path = dialog.user_img.text()
+      self.config.images[sender_id] = path
+      self.sender().parent().setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (sender_id, path))
 
     
 class Display (Widget):
