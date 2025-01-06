@@ -22,3 +22,4 @@ SUBSYSTEM=="tty", ATTRS{idProduct}=="0004", ATTRS{idVendor}=="2ec2", GROUP="plug
 
 Be sure your user is indeed in the `plugdev` group for this to work properly.
 
+
