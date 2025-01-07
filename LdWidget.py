@@ -76,6 +76,7 @@ class Loupedeck (QWidget):
       self.config.images[sender_id] = path
       self.sender().parent().setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (sender_id, path))
 
+
     
 class Display (Widget):
   def __init__(self, text):
