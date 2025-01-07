@@ -58,15 +58,15 @@ class Loupedeck (QWidget):
     _ = [layout.addWidget(pages[i], 4, i) for i in range(8)]
 
     self.setLayout(layout)
-    
+
   def choose_action(self):
     sender_id = self.sender().parent().objectName()
     dialog = ConfigCmd(self.sender().parent())
     print("choose_action called")
     if (dialog.exec()):
       self.config.actions[sender_id] = dialog.user_cmd.text()
-    
-    
+
+
   def choose_image(self):
     sender_id = self.sender().parent().objectName()
     dialog = ConfigImg(self.sender().parent())
@@ -77,7 +77,7 @@ class Loupedeck (QWidget):
       self.sender().parent().setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (sender_id, path))
 
 
-    
+
 class Display (Widget):
   def __init__(self, text):
     super().__init__(text)
@@ -92,11 +92,11 @@ class Encoder (Widget):
   def __init__(self, text):
     super().__init__(text)
 
-    
+
 class TouchButton (Display):
   def __init__(self, text): 
     super().__init__(text)
-    
+
 
 class Display (Display):
   def __init__(self, text):
