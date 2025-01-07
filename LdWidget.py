@@ -1,11 +1,12 @@
 import LdDialog
+import LdApp
+
 from LdDialog import ConfigCmd, ConfigImg
 from LdConfiguration import LdConfiguration
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGridLayout, QApplication
 from PyQt5.QtCore import Qt
 from PIL import Image, ImageColor
-
 
 
 class Widget (QPushButton):
@@ -23,7 +24,7 @@ class Loupedeck (QWidget):
   def __init__(self, parent=None):
     QWidget.__init__(self, parent)
     self.config = LdConfiguration()
-    
+
     layout = QGridLayout()
     for row in range(3):
       encoderL = Encoder("enc. " + str(row+1) + " Left")
@@ -66,16 +67,15 @@ class Loupedeck (QWidget):
     if (dialog.exec()):
       self.config.actions[sender_id] = dialog.user_cmd.text()
 
-
   def choose_image(self):
     sender_id = self.sender().parent().objectName()
     dialog = ConfigImg(self.sender().parent())
-    print("choose_image called")
+    dialog.image_selected.connect(QApplication.instance().on_image_selected)
+
     if (dialog.exec()):
       path = dialog.user_img.text()
       self.config.images[sender_id] = path
       self.sender().parent().setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (sender_id, path))
-
 
 
 class Display (Widget):

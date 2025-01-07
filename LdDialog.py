@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QDialog, QDialogButtonBox, QLineEdit, QFileDialog, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PIL import Image, ImageColor
 from pathlib import Path
 
@@ -30,6 +30,8 @@ class ConfigCmd (QDialog):
 
 
 class ConfigImg (QDialog):
+  image_selected = pyqtSignal(str)
+
   def __init__(self, parent):
     QDialog.__init__(self, parent)
 
@@ -61,6 +63,7 @@ class ConfigImg (QDialog):
     if filename:
       path = Path(filename)
       self.user_img.setText(str(path))
+      self.image_selected.emit(str(path))
 
   def accept(self):
     super().accept()
