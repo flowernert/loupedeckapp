@@ -8,7 +8,7 @@ This is an attemps to provide Linux platforms with something similar to what the
 
 ## Current state
 
-GUI prototype
+Can program touchbutton images and can configure shell commands to be executed when a touchbutton is pressed
 
 ## Pre-requisite
 
