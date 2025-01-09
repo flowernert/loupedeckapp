@@ -55,7 +55,7 @@ class LdApp(QApplication):
       elif try_cpt < 10:
         try_cpt +=1
         time.sleep(try_cpt/10.0)
-      else try_cpt >= 10:
+      else:
         self.close("Unable to detect the Loupedeck device after %i attempts" % (try_cpt))
 
   def save(self):
@@ -70,16 +70,15 @@ class LdApp(QApplication):
         button = self.ld_widget.findChild(QPushButton, key)
         if button :
           button.setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (key, path))
-          self.set_img_to_touchbutton(path, self.tb_to_keycode(key))
+          self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
 
   def device_callback(self, ld, message:dict):
     if CBC.SCREEN.value in message:  # touch event
-      if message[CBC.KEY.value] is not None:  # touch key pressed
-        if "touchstart" in message[CBC.ACTION.value]:  # to avoid double activation
-          self.on_touchkey_press(message[CBC.KEY.value])
-      else:  # left or right screen press
-        print("display event on display %s" % message[CBC.SCREEN.value])
-
+      if "touchstart" in message[CBC.ACTION.value]:# to avoid double activation
+        if message[CBC.KEY.value] is not None:  # touch key pressed
+            self.on_touchkey_press(message[CBC.KEY.value])
+        else:  # left or right screen press
+            self.on_touchdisplay_press(message[CBC.X.value], message[CBC.Y.value])
     elif CBC.STATE.value in message:  # encoder rotate or press or mode button press
       l = ["circle"]
       l = l + [str(i) for i in range(1, 8)]
@@ -98,7 +97,7 @@ class LdApp(QApplication):
     sender_id = self.sender().parent().objectName()
     path = self.ld_widget.config.images[sender_id]
     if "tb" in sender_id:
-      keycode = self.tb_to_keycode(sender_id)
+      keycode = self.tb_name_to_keycode(sender_id)
       self.set_img_to_touchbutton(image_path, keycode)
     elif "dis" in sender_id:
       side = sender_id[4]
@@ -123,12 +122,22 @@ class LdApp(QApplication):
         #self.ld_device.set_key_image(display, image)
         self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=True)
 
-  def tb_to_keycode(self, name):
+  def tb_name_to_keycode(self, name):
     if "tb" in name and len(name) == 4:
       row = int(name[2])
       col = int(name[3])
       tb_id = (row-1)*4 + col-1
       return tb_id
+
+  def td_pos_to_display_name(self, x, y):
+    s = "dis"
+    row = str(floor(y/90)+1)
+    s += row
+    if x < 60:
+      s +="L"
+    else:
+      s +="R"
+    return s
 
   def on_touchkey_press(self, key):
     row = floor(key/4)+1
@@ -136,6 +145,11 @@ class LdApp(QApplication):
     str_key = "tb" + str(row) + str(col)
     cmd = self.ld_widget.config.actions[str_key]
     os.system(cmd)
+
+  def on_touchdisplay_press(self, x, y):
+     str_key = self.td_pos_to_display_name(x, y)
+     cmd = self.ld_widget.config.actions[str_key]
+     os.system(cmd)
 
   def close(self, event):
     print("onclose")
