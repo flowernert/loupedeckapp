@@ -103,7 +103,7 @@ class Display (Widget):
     self.setLayout(layout)
 
   def set_image(self, img_path):
-    self.setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (self.objectName(), img_path))
+    self.setStyleSheet("QPushButton#%s { border: 1px solid black; border-image: url(%s);}" % (self.objectName(), img_path))
 
 
 class Encoder (Widget):
