@@ -14,7 +14,7 @@ class Widget (QPushButton):
     QPushButton.__init__(self, text)
     self.setFixedSize(90, 90)
     self.cmd_edit = QPushButton("cmd")
-    self.cmd_edit.setFixedSize(45, 20)
+    self.cmd_edit.setFixedSize(35, 15)
     vlayout = QVBoxLayout()
     vlayout.addWidget(self.cmd_edit, alignment=Qt.AlignRight|Qt.AlignTop)
     self.setLayout(vlayout)
@@ -32,11 +32,11 @@ class Loupedeck (QWidget):
       encoderL.cmd_edit.clicked.connect(self.choose_action)
       layout.addWidget(encoderL, row, 0)
 
-      displayL = Display("dis." + str(row+1) + " Left")
+      displayL = TDisplay("dis." + str(row+1) + " Left")
       displayL.setObjectName("dis%sL" % (row+1))
       displayL.cmd_edit.clicked.connect(self.choose_action)
       displayL.img_edit.clicked.connect(self.choose_image)
-      layout.addWidget(displayL, row, 1)
+      layout.addWidget(displayL, row, 1, alignment=Qt.AlignRight)
 
       buttons = [TouchButton("but. " + str(row+1) + " " + str(col+1)) for col in range(4)]
       _ = [buttons[col].setObjectName("tb%i%i" % (row+1, col+1)) for col in range(4)]
@@ -44,11 +44,11 @@ class Loupedeck (QWidget):
       _ = [buttons[col].img_edit.clicked.connect(self.choose_image) for col in range(4)]
       _ = [layout.addWidget(buttons[col], row, col+2) for col in range(4)]
 
-      displayR = Display("dis. " + str(row+1) + " Right")
-      displayR.setObjectName("dis%sL" % (row+1))
+      displayR = TDisplay("dis. " + str(row+1) + " Right")
+      displayR.setObjectName("dis%sR" % (row+1))
       displayR.cmd_edit.clicked.connect(self.choose_action)
       displayR.img_edit.clicked.connect(self.choose_image)
-      layout.addWidget(displayR, row, 6)
+      layout.addWidget(displayR, row, 6, alignment=Qt.AlignLeft)
 
       encoderR = Encoder("enc. " + str(row+1) + " Right")
       encoderR.setObjectName("enc%sR" % (row+1))
@@ -82,7 +82,7 @@ class Display (Widget):
   def __init__(self, text):
     super().__init__(text)
     self.img_edit = QPushButton("img")
-    self.img_edit.setFixedSize(45, 20)
+    self.img_edit.setFixedSize(35, 15)
     layout = self.layout()
     layout.addWidget(self.img_edit, alignment=Qt.AlignRight|Qt.AlignBottom)
     self.setLayout(layout)
@@ -98,9 +98,10 @@ class TouchButton (Display):
     super().__init__(text)
 
 
-class Display (Display):
+class TDisplay (Display):
   def __init__(self, text):
     super().__init__(text)
+    self.setFixedSize(60, 90)
 
 
 class ModeButton (Widget):

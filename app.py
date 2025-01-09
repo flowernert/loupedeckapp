@@ -11,7 +11,8 @@ from PIL import Image, ImageColor
 def main(argv):
   app = LdApp(argv)
   app.detect()
-  sys.exit(app.exec())
+  exec_code = app.exec()
+  sys.exit(exec_code)
 
 
 if __name__ == "__main__":

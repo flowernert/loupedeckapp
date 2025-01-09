@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPushBut
 from PyQt5.QtCore import pyqtSignal
 from PIL import Image, ImageColor
 from math import floor
-import os
+import os, time, serial, gc
 
 
 class LdApp(QApplication):
@@ -40,16 +40,23 @@ class LdApp(QApplication):
     self.save_to.connect(self.ld_widget.config.save)
     self.load_but.clicked.connect(self.load)
     self.load_to.connect(self.ld_widget.config.load)
+    self.main_window.closeEvent = self.close
     self.main_window.show()
 
   def detect(self):
-    ld = DeviceManager().enumerate()
-    if len(ld) >= 1:
-      print("detected")
-      self.ld_device = ld[0] 
-      self.ld_device.set_callback(self.device_callback)
-    else:
-      print("no device found")
+    ld = None
+    try_cpt = 0
+    while not ld:
+      ld = DeviceManager().enumerate()
+      if len(ld) >= 1:
+        print("detected")
+        self.ld_device = ld[0]
+        self.ld_device.set_callback(self.device_callback)
+      elif try_cpt < 10:
+        try_cpt +=1
+        time.sleep(try_cpt/10.0)
+      else try_cpt >= 10:
+        self.close("Unable to detect the Loupedeck device after %i attempts" % (try_cpt))
 
   def save(self):
     self.save_to.emit(self.profile.text())
@@ -88,17 +95,33 @@ class LdApp(QApplication):
       print(message.values())
 
   def on_image_selected(self, image_path):
-    tb_id = self.sender().parent().objectName()
-    path = self.ld_widget.config.images[tb_id]
-    if "tb" in tb_id:
-      keycode = self.tb_to_keycode(tb_id)
+    sender_id = self.sender().parent().objectName()
+    path = self.ld_widget.config.images[sender_id]
+    if "tb" in sender_id:
+      keycode = self.tb_to_keycode(sender_id)
       self.set_img_to_touchbutton(image_path, keycode)
+    elif "dis" in sender_id:
+      side = sender_id[4]
+      row = int(sender_id[3])
+      self.set_img_to_touchdisplay(image_path, side, row)
 
   def set_img_to_touchbutton(self, image_path, keycode):
     with open(image_path, "rb") as infile:
         image = Image.open(infile).convert("RGBA")
         image.thumbnail((90,90))
         self.ld_device.set_key_image(keycode, image)
+
+  def set_img_to_touchdisplay(self, image_path, side, row):
+    with open(image_path, "rb") as infile:
+        image = Image.open(infile).convert("RGBA").resize((60,60)).crop((0,-15,60,75))
+        if side == "L":
+          x = 0
+          display = "left"
+        else:
+          x = 480
+          display = "right"
+        #self.ld_device.set_key_image(display, image)
+        self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=True)
 
   def tb_to_keycode(self, name):
     if "tb" in name and len(name) == 4:
@@ -114,7 +137,8 @@ class LdApp(QApplication):
     cmd = self.ld_widget.config.actions[str_key]
     os.system(cmd)
 
-  def __exit__(self, exc_type, exc_value, traceback):
-    self.ld_device.stop()
-    super().__exit__(exc_type, exc_value, traceback)
+  def close(self, event):
+    print("onclose")
+    if self.ld_device.reading_running or self.ld_device.process_running:
+      self.ld_device.stop()
 
