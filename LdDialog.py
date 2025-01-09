@@ -10,6 +10,7 @@ class ConfigCmd (QDialog):
     self.setWindowTitle("Configure command to be executed when the button is pressed")
     
     self.user_cmd = QLineEdit(self)
+    self.user_cmd.setClearButtonEnabled(True)
     value = parent.parent().config.actions[parent.objectName()]
     if value:
       self.user_cmd.setText(value)
