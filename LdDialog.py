@@ -4,6 +4,8 @@ from PIL import Image, ImageColor
 from pathlib import Path
 
 class ConfigCmd (QDialog):
+  cmd_selected = pyqtSignal(str)  #command
+
   def __init__(self, parent):
     QDialog.__init__(self, parent)
     
@@ -11,7 +13,7 @@ class ConfigCmd (QDialog):
     
     self.user_cmd = QLineEdit(self)
     self.user_cmd.setClearButtonEnabled(True)
-    value = parent.parent().config.actions[parent.objectName()]
+    value = parent.parent().parent().config.actions[parent.objectName()]
     if value:
       self.user_cmd.setText(value)
     else:
@@ -26,6 +28,7 @@ class ConfigCmd (QDialog):
     self.setLayout(layout)
   
   def accept(self):
+    self.cmd_selected.emit(self.user_cmd.text())
     super().accept()
     
   def reject(self):
@@ -37,11 +40,10 @@ class ConfigImg (QDialog):
 
   def __init__(self, parent):
     QDialog.__init__(self, parent)
-
     self.setWindowTitle("Configure image to be displayed")
 
     self.user_img = QLineEdit(self)
-    value = parent.parent().config.images[parent.objectName()]
+    value = parent.parent().parent().config.images[parent.objectName()]
     self.user_img.setText(value)
 
     path_select_but = QPushButton("Open file selector ...", self)
@@ -56,7 +58,6 @@ class ConfigImg (QDialog):
     layout.addWidget(path_select_but)
     layout.addWidget(self.but_box)
     self.setLayout(layout)
-
 
   def path_selection_popup(self):
     filename, ok = QFileDialog.getOpenFileName(self,

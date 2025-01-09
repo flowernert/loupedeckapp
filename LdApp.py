@@ -92,12 +92,13 @@ class LdApp(QApplication):
       elif message[CBC.ACTION.value] is CBC.PUSH.value and message[CBC.STATE.value] == "down":  # encoder press and avoid double activation
         self.on_encoder_press(message[CBC.IDENTIFIER.value])
 
-    # workspace event
+    # workspace selection event
     elif message[CBC.IDENTIFIER.value] in ws_keys:
       print ("press event on button %s" % message[CBC.IDENTIFIER.value])
 
     # catch other untreated yet cases
     else:
+      print("Unhandled event!")
       print(message.keys())
       print(message.values())
 
