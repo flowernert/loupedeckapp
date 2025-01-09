@@ -13,7 +13,7 @@ import os, time, serial, gc
 
 class LdApp(QApplication):
   save_to = pyqtSignal(str)
-  load_to = pyqtSignal(str)
+  load_from = pyqtSignal(str)
 
   def __init__(self, argv):
     QApplication.__init__(self, argv)
@@ -36,10 +36,10 @@ class LdApp(QApplication):
     vwidget = QWidget(self.main_window)
     vwidget.setLayout(vlayout)
     self.main_window.setCentralWidget(vwidget)
-    self.save_but.clicked.connect(self.save)
+    self.save_but.clicked.connect(self.save_profile)
     self.save_to.connect(self.ld_widget.config.save)
-    self.load_but.clicked.connect(self.load)
-    self.load_to.connect(self.ld_widget.config.load)
+    self.load_but.clicked.connect(self.load_profile)
+    self.load_from.connect(self.ld_widget.config.load)
     self.main_window.closeEvent = self.close
     self.main_window.show()
 
@@ -58,19 +58,24 @@ class LdApp(QApplication):
       else:
         self.close("Unable to detect the Loupedeck device after %i attempts" % (try_cpt))
 
-  def save(self):
+  def save_profile(self):
     self.save_to.emit(self.profile.text())
 
-  def load(self):
-    self.load_to.emit(self.profile.text())
+  def load_profile(self):
+    self.ld_device.reset()
+    self.load_from.emit(self.profile.text())
     # restore profile name and load profile images onto the GUI
     self.profile.setText(self.ld_widget.config.profile)
     for key, path in self.ld_widget.config.images.items():
-      if path:
-        button = self.ld_widget.findChild(QPushButton, key)
-        if button :
-          button.setStyleSheet("QPushButton#%s { background-image: url(%s);}" % (key, path))
+      widget = self.ld_widget.findChild(QPushButton, "root_" + key)
+      if path and widget:
+        widget.set_image(path)
+        if "tb" in widget.objectName() :
           self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
+        elif "dis" in widget.objectName():
+          self.set_img_to_touchdisplay(path, key[4], int(key[3]))
+        else:
+          print("load_profile: unknown identifier")
 
   def device_callback(self, ld, message:dict):
     ws_keys = ["circle"] + [str(i) for i in range(1, 8)]
@@ -137,6 +142,14 @@ class LdApp(QApplication):
       col = int(name[3])
       tb_id = (row-1)*4 + col-1
       return tb_id
+
+  def td_name_to_xy_pos(td_name):
+    if td_name[4] == "L":
+      x = 0
+    else:
+      x = 480
+    y = (int(td_name[3])-1)*90
+    return x, y
 
   def td_pos_to_display_name(self, x, y):
     s = "dis"

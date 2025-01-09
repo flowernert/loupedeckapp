@@ -30,7 +30,7 @@ class ConfigCmd (QDialog):
   def accept(self):
     self.cmd_selected.emit(self.user_cmd.text())
     super().accept()
-    
+
   def reject(self):
     super().reject()
 
@@ -43,6 +43,7 @@ class ConfigImg (QDialog):
     self.setWindowTitle("Configure image to be displayed")
 
     self.user_img = QLineEdit(self)
+    self.user_img.setClearButtonEnabled(True)
     value = parent.parent().parent().config.images[parent.objectName()]
     self.user_img.setText(value)
 
