@@ -11,8 +11,10 @@ class ConfigCmd (QDialog):
     
     self.user_cmd = QLineEdit(self)
     value = parent.parent().config.actions[parent.objectName()]
-    self.user_cmd.setText(value)
-    
+    if value:
+      self.user_cmd.setText(value)
+    else:
+      self.user_cmd.setText("./Launcher/")
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)
     self.but_box.rejected.connect(self.reject)

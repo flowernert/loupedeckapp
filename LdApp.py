@@ -73,23 +73,31 @@ class LdApp(QApplication):
           self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
 
   def device_callback(self, ld, message:dict):
-    if CBC.SCREEN.value in message:  # touch event
-      if "touchstart" in message[CBC.ACTION.value]:# to avoid double activation
-        if message[CBC.KEY.value] is not None:  # touch key pressed
-            self.on_touchkey_press(message[CBC.KEY.value])
-        else:  # left or right screen press
-            self.on_touchdisplay_press(message[CBC.X.value], message[CBC.Y.value])
-    elif CBC.STATE.value in message:  # encoder rotate or press or mode button press
-      l = ["circle"]
-      l = l + [str(i) for i in range(1, 8)]
-      if message[CBC.ACTION.value] is CBC.ROTATE.value:  # encoder rotate
-        print("rotate %s event on encoder %s" % (message[CBC.STATE.value], message[CBC.IDENTIFIER.value]))
-      elif message[CBC.IDENTIFIER.value] in l:  # mode button pressed
-        print ("press event on button %s" % message[CBC.IDENTIFIER.value])
-      else:  # encoder button pressed
-        print ("press event on encoder %s" % message[CBC.IDENTIFIER.value])
+    ws_keys = ["circle"] + [str(i) for i in range(1, 8)]
 
-    else:  # catch other untreated yet cases
+    # touch event
+    if CBC.SCREEN.value in message:
+      if "touchstart" in message[CBC.ACTION.value]:  # to avoid double activation
+        # touch key pressed
+        if message[CBC.KEY.value] is not None:
+          self.on_touchkey_press(message[CBC.KEY.value])
+        # left or right screen press
+        else:
+          self.on_touchdisplay_press(message[CBC.X.value], message[CBC.Y.value])
+
+    # encoder event
+    elif "knob" in message[CBC.IDENTIFIER.value]:
+      if message[CBC.ACTION.value] is CBC.ROTATE.value:  # encoder rotate
+        self.on_encoder_rotate(message[CBC.IDENTIFIER.value], message[CBC.STATE.value])
+      elif message[CBC.ACTION.value] is CBC.PUSH.value and message[CBC.STATE.value] == "down":  # encoder press and avoid double activation
+        self.on_encoder_press(message[CBC.IDENTIFIER.value])
+
+    # workspace event
+    elif message[CBC.IDENTIFIER.value] in ws_keys:
+      print ("press event on button %s" % message[CBC.IDENTIFIER.value])
+
+    # catch other untreated yet cases
+    else:
       print(message.keys())
       print(message.values())
 
@@ -139,6 +147,15 @@ class LdApp(QApplication):
       s +="R"
     return s
 
+  def knob_to_enc_name(self, knob):
+    if knob[4] == "T":
+      row = 1
+    elif knob[4] == "C":
+      row = 2
+    else:
+      row = 3
+    return "enc" + str(row) + knob[5]
+
   def on_touchkey_press(self, key):
     row = floor(key/4)+1
     col = floor(key-(4*(row-1)))+1
@@ -150,6 +167,16 @@ class LdApp(QApplication):
      str_key = self.td_pos_to_display_name(x, y)
      cmd = self.ld_widget.config.actions[str_key]
      os.system(cmd)
+
+  def on_encoder_press(self, encoder):
+    str_key = self.knob_to_enc_name(encoder)
+    cmd = self.ld_widget.config.actions[str_key]
+    os.system(cmd)
+
+  def on_encoder_rotate(self, encoder, direction):
+    str_key = self.knob_to_enc_name(encoder) + "-" + direction[0]
+    cmd = self.ld_widget.config.actions[str_key]
+    os.system(cmd)
 
   def close(self, event):
     print("onclose")
