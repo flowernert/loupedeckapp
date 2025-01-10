@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QDialog, QDialogButtonBox, QLineEdit, QFileDialog, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QWidget, QDialog, QDialogButtonBox, QLineEdit, QFileDialog, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal
 from PIL import Image, ImageColor
 from pathlib import Path
@@ -8,12 +8,11 @@ class ConfigCmd (QDialog):
 
   def __init__(self, parent):
     QDialog.__init__(self, parent)
-    
-    self.setWindowTitle("Configure command to be executed when the button is pressed")
-    
+    self.setWindowTitle("Configure command to be executed when pressed")
+
     self.user_cmd = QLineEdit(self)
     self.user_cmd.setClearButtonEnabled(True)
-    value = parent.parent().parent().config.actions[parent.objectName()]
+    value = QApplication.instance().current_ws().actions[parent.objectName()]
     if value:
       self.user_cmd.setText(value)
     else:
@@ -21,7 +20,7 @@ class ConfigCmd (QDialog):
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)
     self.but_box.rejected.connect(self.reject)
-    
+
     layout = QVBoxLayout()
     layout.addWidget(self.user_cmd)
     layout.addWidget(self.but_box)
@@ -44,7 +43,8 @@ class ConfigImg (QDialog):
 
     self.user_img = QLineEdit(self)
     self.user_img.setClearButtonEnabled(True)
-    value = parent.parent().parent().config.images[parent.objectName()]
+    ldApp = QApplication.instance()
+    value = ldApp.current_ws().images[parent.objectName()]
     self.user_img.setText(value)
 
     path_select_but = QPushButton("Open file selector ...", self)
