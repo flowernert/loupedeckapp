@@ -6,10 +6,11 @@ Loupedeck live configuration application for linux.
 
 This is an attemps to provide Linux platforms with something similar to what the original loupedeck app offer on Windows and MacOS platform.
 
-## Current state
+## Current status
 
 Can program touchbutton images and can configure shell commands to be executed when a touchbutton or an encoder is pressed
 Can save images and commands to a profile file, can restore the profile, restoring will update the GUI and load back images to the loupedeck device 
+Workspaces implemented
 
 ## Pre-requisite
 
