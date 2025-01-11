@@ -1,4 +1,5 @@
 import LdWidget as ldw
+from LdConfiguration import LdAction
 
 from Loupedeck import DeviceManager
 from Loupedeck.Devices import LoupedeckLive
@@ -44,6 +45,7 @@ class LdApp(QApplication):
     self.save_to.connect(self.ld_widget.config.save)
     self.load_but.clicked.connect(self.load_profile)
     self.load_from.connect(self.ld_widget.config.load)
+    self.load_from.connect(self.profile.setText)
     self.main_window.closeEvent = self.close
     self.main_window.show()
 
@@ -77,8 +79,6 @@ class LdApp(QApplication):
     self.ld_device.reset()
     self.ld_widget.reset_images()
     self.load_from.emit(self.profile.text())
-    # restore profile name and load profile images onto the GUI and the device display
-    self.profile.setText(self.ld_widget.config.profile)
     self.on_workspace_press(self.ws_keys[0])
 
   def device_callback(self, ld, message:dict):
@@ -181,6 +181,7 @@ class LdApp(QApplication):
     row = floor(key/4)+1
     col = floor(key-(4*(row-1)))+1
     str_key = "tb" + str(row) + str(col)
+#    self.current_ws().actions[str_key].execute()
     cmd = self.current_ws().actions[str_key]
     os.system(cmd)
 
@@ -213,12 +214,24 @@ class LdApp(QApplication):
       widget = self.ld_widget.elements["root_" + key]
       if widget and path:
         widget.set_image(path)
+        widget.img_edit.setToolTip(path)
         if "tb" in widget.objectName() :
-          self.set_img_to_touch button(path, self.tb_name_to_keycode(key))
+          self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
         elif "dis" in widget.objectName():
           self.set_img_to_touchdisplay(path, key[4], int(key[3]))
         else:
           print("load_profile: unknown identifier")
+
+    for key, cmd in self.get_ws(ws_key).actions.items():
+      widget = self.ld_widget.elements["root_" + key.strip("lr-")]
+      if widget and cmd:
+        if len(key)<=5:
+          widget.cmd_edit.setToolTip(cmd)
+        elif key.endswith("-r"):
+          widget.right_cmd_edit.setToolTip(cmd)
+        elif key.endswith("-l"):
+          widget.left_cmd_edit.setToolTip(cmd)
+
 
   def close(self, event):
     print("onclose")

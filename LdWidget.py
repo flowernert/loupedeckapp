@@ -60,6 +60,7 @@ class Loupedeck (QWidget):
       self.displays[displayR.objectName()] = displayR
 
       encoderR = Encoder("enc. " + str(row+1) + " Right")
+      encoderR.setObjectName("root_enc%sR" % (row+1))
       encoderR.push_cmd_edit.clicked.connect(self.choose_action)
       encoderR.push_cmd_edit.setObjectName("enc%sR" % (row+1))
       encoderR.left_cmd_edit.clicked.connect(self.choose_action)
