@@ -50,6 +50,7 @@ class LdApp(QApplication):
   def detect(self):
     ld = None
     try_cpt = 0
+    LoupedeckLive.BAUD_RATE = 460800  # no idea if effective
     while not ld:
       ld = DeviceManager().enumerate()
       if len(ld) >= 1:
@@ -76,20 +77,9 @@ class LdApp(QApplication):
     self.ld_device.reset()
     self.ld_widget.reset_images()
     self.load_from.emit(self.profile.text())
-    # restore profile name and load profile images onto the GUI
+    # restore profile name and load profile images onto the GUI and the device display
     self.profile.setText(self.ld_widget.config.profile)
-    for i in range(8):
-      ws_config = self.config.workspaces[i].images.items()
-      for key, path in self.config.workspaces[i].images.items():
-        widget = self.ld_widget.findChild(QPushButton, "root_" + key)
-        if path and widget:
-          widget.set_image(path)
-          if "tb" in widget.objectName() :
-            self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
-          elif "dis" in widget.objectName():
-            self.set_img_to_touchdisplay(path, key[4], int(key[3]))
-          else:
-            print("load_profile: unknown identifier")
+    self.on_workspace_press(self.ws_keys[0])
 
   def device_callback(self, ld, message:dict):
     # touch event
@@ -110,7 +100,7 @@ class LdApp(QApplication):
         self.on_encoder_press(message[CBC.IDENTIFIER.value])
 
     # workspace selection event
-    elif message[CBC.IDENTIFIER.value] in self.ws_keys:
+    elif message[CBC.IDENTIFIER.value] in self.ws_keys and message[CBC.IDENTIFIER.value] != self.selected_ws and message[CBC.STATE.value] == "down":
       self.on_workspace_press(message[CBC.IDENTIFIER.value])
 
     # catch other untreated yet cases
@@ -136,7 +126,7 @@ class LdApp(QApplication):
         image.thumbnail((90,90))
         self.ld_device.set_key_image(keycode, image)
 
-  def set_img_to_touchdisplay(self, image_path, side, row):
+  def set_img_to_touchdisplay(self, image_path, side, row, auto_refresh=True):
     with open(image_path, "rb") as infile:
         image = Image.open(infile).convert("RGBA").resize((60,60)).crop((0,-15,60,75))
         if side == "L":
@@ -145,8 +135,7 @@ class LdApp(QApplication):
         else:
           x = 480
           display = "right"
-        #self.ld_device.set_key_image(display, image)
-        self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=True)
+        self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=auto_refresh)
 
   def current_ws(self):
     return self.config.workspaces[self.ws_keys.index(self.selected_ws)]
@@ -211,6 +200,7 @@ class LdApp(QApplication):
     os.system(cmd)
 
   def on_workspace_press(self, ws_key):
+    print("workspace press")
     current_ws = self.selected_ws
     self.ld_device.set_button_color(current_ws, (63, 63, 63))  # dim white
     self.selected_ws = ws_key
@@ -220,11 +210,11 @@ class LdApp(QApplication):
     
     ws_config = self.get_ws(ws_key).images.items()
     for key, path in ws_config:
-      widget = self.ld_widget.findChild(QPushButton, "root_" + key)
+      widget = self.ld_widget.elements["root_" + key]
       if widget and path:
         widget.set_image(path)
         if "tb" in widget.objectName() :
-          self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
+          self.set_img_to_touch button(path, self.tb_name_to_keycode(key))
         elif "dis" in widget.objectName():
           self.set_img_to_touchdisplay(path, key[4], int(key[3]))
         else:

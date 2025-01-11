@@ -13,13 +13,15 @@ class Loupedeck (QWidget):
   def __init__(self, parent=None):
     QWidget.__init__(self, parent)
     self.config = LdConfiguration()
-    self.encoders = list()
-    self.displays = list()
-    self.touchbuttons = list()
+    self.elements = dict()
+    self.encoders = dict()
+    self.displays = dict()
+    self.touchbuttons = dict()
 
     layout = QGridLayout()
     for row in range(3):
       encoderL = Encoder("enc. " + str(row+1) + " Left")
+      encoderL.setObjectName("root_enc%sL" % (row+1))
       encoderL.push_cmd_edit.clicked.connect(self.choose_action)
       encoderL.push_cmd_edit.setObjectName("enc%sL" % (row+1))
       encoderL.left_cmd_edit.clicked.connect(self.choose_action)
@@ -27,16 +29,16 @@ class Loupedeck (QWidget):
       encoderL.right_cmd_edit.clicked.connect(self.choose_action)
       encoderL.right_cmd_edit.setObjectName("enc%sL-r" % (row+1))
       layout.addWidget(encoderL, row, 0)
-      self.encoders.append(encoderL)
+      self.encoders[encoderL.objectName()] = encoderL
 
       displayL = TouchDisplay("dis." + str(row+1) + " Left")
-      displayL.setObjectName("root_dis%sL"% (row+1))
+      displayL.setObjectName("root_dis%sL" % (row+1))
       displayL.cmd_edit.clicked.connect(self.choose_action)
       displayL.cmd_edit.setObjectName("dis%sL" % (row+1))
       displayL.img_edit.clicked.connect(self.choose_image)
       displayL.img_edit.setObjectName("dis%sL" % (row+1))
       layout.addWidget(displayL, row, 1, alignment=Qt.AlignRight)
-      self.displays.append(displayL)
+      self.displays[displayL.objectName()] = displayL
 
       buttons = [TouchButton("but. " + str(row+1) + " " + str(col+1)) for col in range(4)]
       _ = [buttons[col].setObjectName("root_tb%i%i" % (row+1, col+1)) for col in range(4)]
@@ -45,16 +47,17 @@ class Loupedeck (QWidget):
       _ = [buttons[col].img_edit.clicked.connect(self.choose_image) for col in range(4)]
       _ = [buttons[col].img_edit.setObjectName("tb%i%i" % (row+1, col+1)) for col in range(4)]
       _ = [layout.addWidget(buttons[col], row, col+2) for col in range(4)]
-      self.touchbuttons += buttons
+#      self.touchbuttons += buttons
+      self.touchbuttons.update({b.objectName(): b for b in buttons})
 
       displayR = TouchDisplay("dis. " + str(row+1) + " Right")
-      displayR.setObjectName("root_dis%sL"% (row+1))
+      displayR.setObjectName("root_dis%sR"% (row+1))
       displayR.cmd_edit.clicked.connect(self.choose_action)
       displayR.cmd_edit.setObjectName("dis%sR" % (row+1))
       displayR.img_edit.clicked.connect(self.choose_image)
       displayR.img_edit.setObjectName("dis%sR" % (row+1))
       layout.addWidget(displayR, row, 6, alignment=Qt.AlignLeft)
-      self.displays.append(displayR)
+      self.displays[displayR.objectName()] = displayR
 
       encoderR = Encoder("enc. " + str(row+1) + " Right")
       encoderR.push_cmd_edit.clicked.connect(self.choose_action)
@@ -64,10 +67,14 @@ class Loupedeck (QWidget):
       encoderR.right_cmd_edit.clicked.connect(self.choose_action)
       encoderR.right_cmd_edit.setObjectName("enc%sR-r" % (row+1))
       layout.addWidget(encoderR, row, 7)
-      self.encoders.append(encoderR)
+      self.encoders[encoderR.objectName()] = encoderR
 
     pages = [ModeButton(str(i)) for i in range(8)]
     _ = [layout.addWidget(pages[i], 4, i) for i in range(8)]
+
+    self.elements.update(self.encoders)
+    self.elements.update(self.displays)
+    self.elements.update(self.touchbuttons)
 
     self.setLayout(layout)
 
@@ -92,9 +99,9 @@ class Loupedeck (QWidget):
       self.sender().setToolTip(path)
 
   def reset_images(self):
-    for tb in self.touchbuttons:
+    for tb in self.touchbuttons.values():
       tb.set_image("")
-    for d in self.displays:
+    for d in self.displays.values():
       d.set_image("")
 
 class Widget (QPushButton):
