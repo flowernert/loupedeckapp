@@ -4,8 +4,9 @@ import LdApp
 from LdDialog import ConfigAction, ConfigCmd, ConfigImg
 from LdConfiguration import LdConfiguration
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QFrame, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
+from PyQt5.QtGui import QPixmap, QPainter, QColor
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PIL import Image, ImageColor
 
 
@@ -20,7 +21,7 @@ class Loupedeck (QWidget):
 
     layout = QGridLayout()
     for row in range(3):
-      encoderL = Encoder("enc. " + str(row+1) + " Left")
+      encoderL = Encoder()
       encoderL.setObjectName("root_enc%sL" % (row+1))
       encoderL.push_action_edit.clicked.connect(self.choose_action)
       encoderL.push_action_edit.setObjectName("enc%sL" % (row+1))
@@ -31,7 +32,7 @@ class Loupedeck (QWidget):
       layout.addWidget(encoderL, row, 0)
       self.encoders[encoderL.objectName()] = encoderL
 
-      displayL = TouchDisplay("dis." + str(row+1) + " Left")
+      displayL = TouchDisplay()
       displayL.setObjectName("root_dis%sL" % (row+1))
       displayL.action_edit.clicked.connect(self.choose_action)
       displayL.action_edit.setObjectName("dis%sL" % (row+1))
@@ -40,7 +41,7 @@ class Loupedeck (QWidget):
       layout.addWidget(displayL, row, 1, alignment=Qt.AlignRight)
       self.displays[displayL.objectName()] = displayL
 
-      buttons = [TouchButton("but. " + str(row+1) + " " + str(col+1)) for col in range(4)]
+      buttons = [TouchButton() for col in range(4)]
       _ = [buttons[col].setObjectName("root_tb%i%i" % (row+1, col+1)) for col in range(4)]
       _ = [buttons[col].action_edit.clicked.connect(self.choose_action) for col in range(4)]
       _ = [buttons[col].action_edit.setObjectName("tb%i%i" % (row+1, col+1)) for col in range(4)]
@@ -49,7 +50,7 @@ class Loupedeck (QWidget):
       _ = [layout.addWidget(buttons[col], row, col+2) for col in range(4)]
       self.touchbuttons.update({b.objectName(): b for b in buttons})
 
-      displayR = TouchDisplay("dis. " + str(row+1) + " Right")
+      displayR = TouchDisplay()
       displayR.setObjectName("root_dis%sR"% (row+1))
       displayR.action_edit.clicked.connect(self.choose_action)
       displayR.action_edit.setObjectName("dis%sR" % (row+1))
@@ -58,7 +59,7 @@ class Loupedeck (QWidget):
       layout.addWidget(displayR, row, 6, alignment=Qt.AlignLeft)
       self.displays[displayR.objectName()] = displayR
 
-      encoderR = Encoder("enc. " + str(row+1) + " Right")
+      encoderR = Encoder()
       encoderR.setObjectName("root_enc%sR" % (row+1))
       encoderR.push_action_edit.clicked.connect(self.choose_action)
       encoderR.push_action_edit.setObjectName("enc%sR" % (row+1))
@@ -107,10 +108,11 @@ class Loupedeck (QWidget):
       d.set_image("")
 
 
-class Widget (QPushButton):
-  def __init__(self, text):
-    QPushButton.__init__(self, text)
+class Widget (QFrame):
+  def __init__(self):
+    QFrame.__init__(self)
     self.setFixedSize(90, 90)
+    self.setFrameStyle(QFrame.StyledPanel|QFrame.Raised)
     self.action_edit = QPushButton("action")
     self.action_edit.setFixedSize(35, 20)
     vlayout = QVBoxLayout()
@@ -119,27 +121,39 @@ class Widget (QPushButton):
 
 
 class Display (Widget):
-  def __init__(self, text):
-    super().__init__(text)
+  def __init__(self):
+    super().__init__()
+    self.image = QPixmap()
     self.img_edit = QPushButton("img")
     self.img_edit.setFixedSize(35, 20)
+    self.setStyleSheet("QFrame { border: 2px solid darkgrey; border-radius: 5px;}")
     layout = self.layout()
     layout.addWidget(self.img_edit, alignment=Qt.AlignRight|Qt.AlignBottom)
     self.setLayout(layout)
 
   def set_image(self, img_path):
-    self.setStyleSheet("QPushButton#%s { border: 1px solid black; border-image: url(%s);}" % (self.objectName(), img_path))
+    self.image = QPixmap(img_path)
+    self.image = self.image.scaled(QSize(90,90), Qt.KeepAspectRatio)
+    self.update()
+
+  def paintEvent(self, qpaint_event):
+    if not self.image.isNull():
+      qpainter = QPainter(self)
+      qpainter.drawPixmap(0, 0, self.image)
+    QFrame.paintEvent(self, qpaint_event)
+
 
 
 class Encoder (Widget):
-  def __init__(self, text):
-    super().__init__(text)
-
+  def __init__(self):
+    super().__init__()
+    self.setFixedSize(80,80)
     self.push_action_edit = self.action_edit
     self.left_action_edit = QPushButton("L", self)
     self.left_action_edit.setFixedSize(25, 20)
     self.right_action_edit = QPushButton("R", self)
     self.right_action_edit.setFixedSize(25, 20)
+    self.setStyleSheet("QFrame { border: 2px solid darkgrey; border-radius: 40px;}")
 
     hlayout = QHBoxLayout()
     hlayout.addWidget(self.left_action_edit, alignment=Qt.AlignLeft|Qt.AlignBottom)
@@ -151,17 +165,19 @@ class Encoder (Widget):
 
 
 class TouchButton (Display):
-  def __init__(self, text): 
-    super().__init__(text)
+  def __init__(self):
+    super().__init__()
 
 
 class TouchDisplay (Display):
-  def __init__(self, text):
-    super().__init__(text)
+  def __init__(self):
+    super().__init__()
     self.setFixedSize(60, 90)
 
 
-class ModeButton (Widget):
+class ModeButton (QPushButton):
   def __init__(self, text):
     super().__init__(text)
+    self.setFixedSize(80, 80)
+    self.setStyleSheet("QPushButton { border: 2px solid darkgrey; border-radius: 40px;}")
 
