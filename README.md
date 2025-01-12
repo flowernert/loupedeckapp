@@ -8,9 +8,9 @@ This is an attemps to provide Linux platforms with something similar to what the
 
 ## Current status
 
-Can program touchbutton images and can configure shell commands to be executed when a touchbutton or an encoder is pressed
-Can save images and commands to a profile file, can restore the profile, restoring will update the GUI and load back images to the loupedeck device 
-Workspaces implemented
+Can program touchbutton images and can configure actions(shell commands or hotkey) to be executed when a touchbutton or an encoder is pressed/rotated
+Can save images and actions to a profile file, can restore the profile, restoring will update the GUI and load back images to the loupedeck device 
+Workspaces concept implemented on physical buttons 0-7
 
 ## Pre-requisite
 
