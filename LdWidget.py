@@ -143,7 +143,6 @@ class Display (Widget):
     QFrame.paintEvent(self, qpaint_event)
 
 
-
 class Encoder (Widget):
   def __init__(self):
     super().__init__()
