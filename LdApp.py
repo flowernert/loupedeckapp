@@ -111,7 +111,7 @@ class LdApp(QApplication):
 
   def on_image_selected(self, image_path):
     sender_id = self.sender().parent().objectName()
-    path = self.current_ws().images[sender_id]
+    self.current_ws().images[sender_id] = image_path
     if "tb" in sender_id:
       keycode = self.tb_name_to_keycode(sender_id)
       self.set_img_to_touchbutton(image_path, keycode)
@@ -119,6 +119,13 @@ class LdApp(QApplication):
       side = sender_id[4]
       row = int(sender_id[3])
       self.set_img_to_touchdisplay(image_path, side, row)
+
+  def on_action_selected(self, ld_action):
+    sender_id = self.sender().parent().objectName()
+    if ld_action:
+      self.current_ws().actions[sender_id] = ld_action
+    else:
+      self.current_ws().actions[sender_id] = ""
 
   def set_img_to_touchbutton(self, image_path, keycode):
     with open(image_path, "rb") as infile:
@@ -181,24 +188,19 @@ class LdApp(QApplication):
     row = floor(key/4)+1
     col = floor(key-(4*(row-1)))+1
     str_key = "tb" + str(row) + str(col)
-#    self.current_ws().actions[str_key].execute()
-    cmd = self.current_ws().actions[str_key]
-    os.system(cmd)
+    self.current_ws().actions[str_key].execute()
 
   def on_touchdisplay_press(self, x, y):
-     str_key = self.td_pos_to_display_name(x, y)
-     cmd = self.current_ws().actions[str_key]
-     os.system(cmd)
+    str_key = self.td_pos_to_display_name(x, y)
+    self.current_ws().actions[str_key].execute()
 
   def on_encoder_press(self, encoder):
     str_key = self.knob_to_enc_name(encoder)
-    cmd = self.current_ws().actions[str_key]
-    os.system(cmd)
+    self.current_ws().actions[str_key].execute()
 
   def on_encoder_rotate(self, encoder, direction):
     str_key = self.knob_to_enc_name(encoder) + "-" + direction[0]
-    cmd = self.current_ws().actions[str_key]
-    os.system(cmd)
+    self.current_ws().actions[str_key].execute()
 
   def on_workspace_press(self, ws_key):
     print("workspace press")
@@ -222,15 +224,15 @@ class LdApp(QApplication):
         else:
           print("load_profile: unknown identifier")
 
-    for key, cmd in self.get_ws(ws_key).actions.items():
+    for key, action in self.get_ws(ws_key).actions.items():
       widget = self.ld_widget.elements["root_" + key.strip("lr-")]
-      if widget and cmd:
+      if widget and action:
         if len(key)<=5:
-          widget.cmd_edit.setToolTip(cmd)
+          widget.action_edit.setToolTip(action.action)
         elif key.endswith("-r"):
-          widget.right_cmd_edit.setToolTip(cmd)
+          widget.right_action_edit.setToolTip(action.action)
         elif key.endswith("-l"):
-          widget.left_cmd_edit.setToolTip(cmd)
+          widget.left_action_edit.setToolTip(action.action)
 
 
   def close(self, event):

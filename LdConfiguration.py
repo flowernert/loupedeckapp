@@ -1,6 +1,8 @@
-import json
+import json, os
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import QObject
+import pyautogui
 
 
 class LdConfiguration(QObject):
@@ -27,6 +29,7 @@ class LdConfiguration(QObject):
 
   def to_JSON(self):
     ldApp = QApplication.instance()
+    s = {"profile": self.profile, "workspaces": {i: ws.__dict__ for i, ws in zip(ldApp.ws_keys, self.workspaces)}}
     return {"profile": self.profile, "workspaces": {i: ws.__dict__ for i, ws in zip(ldApp.ws_keys, self.workspaces)}}
 
 
@@ -64,5 +67,21 @@ class LdWorkspace(QObject):
       data = json.load(file)
     for key, value in data.items():
       setattr(self, key, value)
- 
+
+
+class LdAction (QObject):
+  type ActionType = Literal["command", "hotkey"]
+
+  def __init__(self, action_type: ActionType, action: str):
+    super().__init__()
+    self.a_type = action_type
+    self.action = action
+
+  def execute(self):
+    if self.a_type == "command":
+      os.system(self.action)
+    elif self.a_type == "hotkey":
+      hotkey = self.action.lower().split("+")
+      pyautogui.hotkey(hotkey)
+
 
