@@ -11,11 +11,9 @@ from PIL import Image, ImageColor
 def main(argv):
   app = LdApp(argv)
   app.detect()
-  exec_code = app.exec()
-  sys.exit(exec_code)
+  sys.exit(app.exec())
 
 
 if __name__ == "__main__":
   main(sys.argv)
-#    image2 = Image.new("RGBA", (90, 90), "blue")
 

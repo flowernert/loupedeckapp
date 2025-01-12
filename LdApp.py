@@ -5,11 +5,11 @@ from Loupedeck import DeviceManager
 from Loupedeck.Devices import LoupedeckLive
 from Loupedeck.Devices.LoupedeckLive import CALLBACK_KEYWORD as CBC
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPushButton, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QPushButton, QLineEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QCommonStyle
 from PyQt5.QtCore import pyqtSignal
 from PIL import Image, ImageColor
 from math import floor
-import os, time, serial, gc
+import os, time, serial, gc, sys
 
 
 class LdApp(QApplication):
@@ -56,15 +56,18 @@ class LdApp(QApplication):
     while not ld:
       ld = DeviceManager().enumerate()
       if len(ld) >= 1:
-        print("detected")
+        print("detected %s" % ld[0])
         self.ld_device = ld[0]
         self.ld_device.set_callback(self.device_callback)
         self.init_ld_device()
       elif try_cpt < 10:
+        print(try_cpt)
         try_cpt +=1
         time.sleep(try_cpt/10.0)
       else:
-        self.close("Unable to detect the Loupedeck device after %i attempts" % (try_cpt))
+        print("Unable to detect the Loupedeck device after %i attempts" % (try_cpt))
+        self.closeAllWindows()
+        break
 
   def init_ld_device(self):
     self.ld_device.reset()
@@ -126,7 +129,7 @@ class LdApp(QApplication):
     if ld_action:
       self.current_ws().actions[sender_id] = ld_action
     else:
-      self.current_ws().actions[sender_id] = ""
+      self.current_ws().actions[sender_id] = LdAction()
 
   def set_img_to_touchbutton(self, image_path, keycode):
     with open(image_path, "rb") as infile:
@@ -236,6 +239,7 @@ class LdApp(QApplication):
 
 
   def close(self, event):
-    if self.ld_device.reading_running or self.ld_device.process_running:
+    if hasattr(self, "ld_device") and self.ld_device:
       self.ld_device.stop()
+    sys.exit(0)
 
