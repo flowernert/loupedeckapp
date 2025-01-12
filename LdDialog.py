@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QDialog, QDialogButtonBox, QLineEdit, QLabel, QFileDialog, QButtonGroup, QPushButton, QKeySequenceEdit, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QPalette, QColor
 from PyQt5.QtCore import Qt, pyqtSignal
 from PIL import Image, ImageColor
 from pathlib import Path
@@ -36,11 +36,11 @@ class ConfigAction (QDialog):
 
     # restore previous action if existing
     action = QApplication.instance().current_ws().actions[parent.objectName()]
-    print("lddialog constructor")
     if action:
       self.selected_action = action
       if action.a_type == "command":
         self.b_cmd.setDisabled(True)
+        self.b_cmd.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
         self.b_hk.setDisabled(True)
         self.user_action.setVisible(False)
         self.command_input.setVisible(True)
@@ -50,10 +50,12 @@ class ConfigAction (QDialog):
         self.hotkey_input.setEnabled(False)
       elif action.a_type == "hotkey":
         self.b_hk.setDisabled(True)
+        self.b_hk.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
         self.b_cmd.setDisabled(True)
         self.user_action.setVisible(False)
         self.hotkey_input.setVisible(True)
         self.hotkey_input.setKeySequence(QKeySequence(action.action))
+        self.hotkey_input.setEnabled(False)
         self.command_input.setVisible(False)
         self.command_input.setEnabled(False)
       self.b_reset.setEnabled(True)
@@ -78,6 +80,7 @@ class ConfigAction (QDialog):
 
   def display_cmd_select(self):
     self.b_hk.setDisabled(True)
+    self.b_cmd.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
     self.b_cmd.setDisabled(True)
     self.user_action.setVisible(False)
     self.hotkey_input.setVisible(False)
@@ -89,6 +92,7 @@ class ConfigAction (QDialog):
 
   def display_hk_select(self):
     self.b_cmd.setDisabled(True)
+    self.b_hk.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
     self.b_hk.setDisabled(True)
     self.user_action.setVisible(False)
     self.command_input.setVisible(False)
@@ -101,7 +105,9 @@ class ConfigAction (QDialog):
     self.but_box.setEnabled(True)
 
   def reset_action_selection(self):
+    self.b_hk.setStyleSheet("")
     self.b_hk.setEnabled(True)
+    self.b_cmd.setStyleSheet("")
     self.b_cmd.setEnabled(True)
     self.b_cmd.setFocus()
     self.hotkey_input.clear()
@@ -115,7 +121,6 @@ class ConfigAction (QDialog):
     self.selected_action = None
 
   def accept(self):
-    print("lddialog accept")
     if self.command_input.isVisible():
       self.selected_action = LdAction("command", self.command_input.text())
       self.action_selected.emit(self.selected_action)
@@ -123,7 +128,7 @@ class ConfigAction (QDialog):
       self.selected_action = LdAction("hotkey", self.hotkey_input.keySequence().toString())
       self.action_selected.emit(self.selected_action)
     else:
-      print("no action selected, this is a bug and shouldn't happen'")
+      print("no action selected, this is a bug and shouldn't happen', please report to the developer")
     super().accept()
 
   def reject(self):

@@ -100,12 +100,13 @@ class LdApp(QApplication):
         self.on_encoder_press(message[CBC.IDENTIFIER.value])
 
     # workspace selection event
-    elif message[CBC.IDENTIFIER.value] in self.ws_keys and message[CBC.IDENTIFIER.value] != self.selected_ws and message[CBC.STATE.value] == "down":
-      self.on_workspace_press(message[CBC.IDENTIFIER.value])
+    elif message[CBC.IDENTIFIER.value] in self.ws_keys:
+      if message[CBC.STATE.value] == "down" and message[CBC.IDENTIFIER.value] != self.selected_ws:
+        self.on_workspace_press(message[CBC.IDENTIFIER.value])
 
     # catch other untreated yet cases
     else:
-      print("Unhandled event!")
+      print("Unhandled event! Please report to the developer")
       print(message.keys())
       print(message.values())
 
@@ -203,7 +204,6 @@ class LdApp(QApplication):
     self.current_ws().actions[str_key].execute()
 
   def on_workspace_press(self, ws_key):
-    print("workspace press")
     current_ws = self.selected_ws
     self.ld_device.set_button_color(current_ws, (63, 63, 63))  # dim white
     self.selected_ws = ws_key
@@ -222,7 +222,7 @@ class LdApp(QApplication):
         elif "dis" in widget.objectName():
           self.set_img_to_touchdisplay(path, key[4], int(key[3]))
         else:
-          print("load_profile: unknown identifier")
+          print("load_profile: unknown identifier, please report the bug to the developer")
 
     for key, action in self.get_ws(ws_key).actions.items():
       widget = self.ld_widget.elements["root_" + key.strip("lr-")]
@@ -236,7 +236,6 @@ class LdApp(QApplication):
 
 
   def close(self, event):
-    print("onclose")
     if self.ld_device.reading_running or self.ld_device.process_running:
       self.ld_device.stop()
 
