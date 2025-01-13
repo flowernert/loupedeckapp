@@ -133,7 +133,8 @@ class Display (Widget):
 
   def set_image(self, img_path):
     self.image = QPixmap(img_path)
-    self.image = self.image.scaled(QSize(90,90), Qt.KeepAspectRatio)
+    if not self.image.isNull():
+      self.image = self.image.scaled(QSize(90, 90), Qt.KeepAspectRatio)
     self.update()
 
   def paintEvent(self, qpaint_event):

@@ -44,8 +44,11 @@ class LdApp(QApplication):
     self.save_but.clicked.connect(self.save_profile)
     self.save_to.connect(self.ld_widget.config.save)
     self.load_but.clicked.connect(self.load_profile)
+    self.load_but.setDisabled(True)
+    self.save_but.setDisabled(True)
     self.load_from.connect(self.ld_widget.config.load)
     self.load_from.connect(self.profile.setText)
+    self.profile.textChanged.connect(self.onProfileTextChanged)
     self.main_window.closeEvent = self.close
     self.main_window.show()
 
@@ -56,7 +59,7 @@ class LdApp(QApplication):
     while not ld:
       ld = DeviceManager().enumerate()
       if len(ld) >= 1:
-        print("detected %s" % ld[0])
+        print("detected %s" % ld[0].DECK_TYPE)
         self.ld_device = ld[0]
         self.ld_device.set_callback(self.device_callback)
         self.init_ld_device()
@@ -74,9 +77,15 @@ class LdApp(QApplication):
     self.ld_device.set_button_color("circle", "green")
     for i in range(1,8):
       self.ld_device.set_button_color(str(i), (63, 63, 63))  # dim white
+    self.ld_device.set_brightness(40)
 
   def save_profile(self):
     self.save_to.emit(self.profile.text())
+
+  def onProfileTextChanged(self, arg):
+    state = bool(arg)
+    self.load_but.setEnabled(state)
+    self.save_but.setEnabled(state)
 
   def load_profile(self):
     self.ld_device.reset()

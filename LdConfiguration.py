@@ -13,14 +13,20 @@ class LdConfiguration(QObject):
     self.workspaces = [LdWorkspace() for i in range(8)]
 
   def save(self, profile_name):
-    self.profile = profile_name
-    with open("./Profiles/" + profile_name + ".json", "w") as file:
-      json.dump(self.to_JSON(), file, indent=True)
+    if profile_name:
+      self.profile = profile_name
+      with open("./Profiles/" + profile_name + ".json", "w") as file:
+        json.dump(self.to_JSON(), file, indent=True)
 
   def load(self, json_file):
-    with open("./Profiles/" + json_file + ".json", "r") as file:
-      data = json.load(file)
-      self.from_JSON(data)
+    try:
+      with open("./Profiles/" + json_file + ".json", "r") as file:
+        data = json.load(file)
+        self.from_JSON(data)
+    except FileNotFoundError:
+      print("File %s not found" % json_file)
+    except json.decoder.JSONDecodeError:
+      print("Can't read JSON in file %s" % json_file)
 
   def to_JSON(self):
     ldApp = QApplication.instance()
