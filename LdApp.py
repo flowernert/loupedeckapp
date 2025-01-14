@@ -19,12 +19,14 @@ class LdApp(QApplication):
   ws_keys = ["circle"] + [str(i) for i in range(1, 8)]
   selected_ws = ws_keys[0]
 
+  submenu_stack = []
+
   def __init__(self, argv):
     QApplication.__init__(self, argv)
     QApplication.qApp = self
     self.main_window = QMainWindow()
     self.main_window.setWindowTitle("Loupedeck Live control")
-    self.ld_widget = ldw.Loupedeck(self.main_window)
+    self.ld_widget = ldw.LoupedeckWidget(self.main_window)
     self.config = self.ld_widget.config
     self.profile = QLineEdit()
     self.save_but = QPushButton("Save profile", self.main_window)
@@ -197,11 +199,58 @@ class LdApp(QApplication):
       row = 3
     return "enc" + str(row) + knob[5]
 
+  def on_submenu_is_opened(self, submenu):
+    #set a return button on tb11 and disable any editing of its image/action
+    #implement a handler to restore the context when the back/return button is pressed
+
+    self.ld_widget.reset_images()
+    submenu_ws = submenu.action
+    for key, path in submenu_ws.images.items():
+      widget = self.ld_widget.elements["root_" + key]
+      if widget and path:
+        widget.set_image(path)
+        widget.img_edit.setToolTip(path)
+        if "tb" in widget.objectName() :
+          self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
+        elif "dis" in widget.objectName():
+          self.set_img_to_touchdisplay(path, key[4], int(key[3]))
+        else:
+          print("load_profile: unknown identifier, please report the bug to the developer")
+
+    for key, action in submenu_ws.actions.items():
+      widget = self.ld_widget.elements["root_" + key.strip("lr-")]
+      if widget and action:
+        if len(key)<=5:
+          widget.action_edit.setToolTip(action.summary)
+        elif key.endswith("-r"):
+          widget.right_action_edit.setToolTip(action.summary)
+        elif key.endswith("-l"):
+          widget.left_action_edit.setToolTip(action.summary)
+
   def on_touchkey_press(self, key):
     row = floor(key/4)+1
     col = floor(key-(4*(row-1)))+1
     str_key = "tb" + str(row) + str(col)
-    self.current_ws().actions[str_key].execute()
+
+    if self.submenu_stack:  # if a submenu is currently opened and one of its key has been pressed
+      action = self.submenu_stack[-1].action.actions[str_key]
+      if action.a_type == "submenu":
+        print("submenu opened from submenu")
+        self.on_submenu_is_opened(action)
+      else:
+        print("submenu command executed %s" % action.action)
+        action.execute()  # executes submenu command
+        submenu = self.submenu_stack.pop()
+    else:
+      action = self.current_ws().actions[str_key]
+      if action.a_type == "submenu":
+        print("submenu opened from basemenu")
+        self.submenu_stack.append(action)
+        self.on_submenu_is_opened(action)
+      else:
+        print("basemenu command executed")
+        action = self.current_ws().actions[str_key]
+        action.execute() # executes main menu command
 
   def on_touchdisplay_press(self, x, y):
     str_key = self.td_pos_to_display_name(x, y)
@@ -240,11 +289,11 @@ class LdApp(QApplication):
       widget = self.ld_widget.elements["root_" + key.strip("lr-")]
       if widget and action:
         if len(key)<=5:
-          widget.action_edit.setToolTip(action.action)
+          widget.action_edit.setToolTip(action.summary)
         elif key.endswith("-r"):
-          widget.right_action_edit.setToolTip(action.action)
+          widget.right_action_edit.setToolTip(action.summary)
         elif key.endswith("-l"):
-          widget.left_action_edit.setToolTip(action.action)
+          widget.left_action_edit.setToolTip(action.summary)
 
 
   def close(self, event):

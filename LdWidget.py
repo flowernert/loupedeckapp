@@ -1,16 +1,12 @@
-import LdDialog
-import LdApp
-
-from LdDialog import ConfigAction, ConfigCmd, ConfigImg
-from LdConfiguration import LdConfiguration
-
-from PyQt5.QtWidgets import QWidget, QFrame, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
+from PyQt5.QtWidgets import QWidget, QDialogButtonBox, QFrame, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QApplication
 from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PIL import Image, ImageColor
+from LdConfiguration import LdConfiguration, LdSubmenu
+from LdDialog import ConfigActionDialog, ConfigImgDialog
 
 
-class Loupedeck (QWidget):
+class LoupedeckWidget (QWidget):
   def __init__(self, parent=None):
     QWidget.__init__(self, parent)
     self.config = LdConfiguration()
@@ -18,6 +14,7 @@ class Loupedeck (QWidget):
     self.encoders = dict()
     self.displays = dict()
     self.touchbuttons = dict()
+    self.modebuttons = dict()
 
     layout = QGridLayout()
     for row in range(3):
@@ -72,6 +69,7 @@ class Loupedeck (QWidget):
 
     pages = [ModeButton(str(i)) for i in range(8)]
     _ = [layout.addWidget(pages[i], 4, i) for i in range(8)]
+    self.modebuttons = pages
 
     self.elements.update(self.encoders)
     self.elements.update(self.displays)
@@ -82,19 +80,22 @@ class Loupedeck (QWidget):
   def choose_action(self):
     ldApp = QApplication.instance()
     sender_id = self.sender().objectName()
-    dialog = ConfigAction(self.sender())
+    dialog = ConfigActionDialog(self.sender())
     dialog.action_selected.connect(ldApp.on_action_selected)
-    if (dialog.exec_()):
-      action = dialog.selected_action
-      if action:
-        self.sender().setToolTip(action.action)
+    dialog.action_selected.connect(self.on_action_selected)
+    dialog.show()
+
+  def on_action_selected(self, action):
+    if action:
+      self.sender().parent().setToolTip(action.summary)
     else:
-      self.sender().setToolTip("")
+      self.sender().parent().setToolTip("")
 
   def choose_image(self):
+    print("executes Loupedeck method")
     ldApp = QApplication.instance()
     sender_id = self.sender().objectName()
-    dialog = ConfigImg(self.sender())
+    dialog = ConfigImgDialog(self.sender())
     dialog.image_selected.connect(ldApp.on_image_selected)
     if (dialog.exec_()):
       path = dialog.user_img.text()
@@ -106,6 +107,41 @@ class Loupedeck (QWidget):
       tb.set_image("")
     for d in self.displays.values():
       d.set_image("")
+
+
+class SubmenuConfigurationWidget(LoupedeckWidget):
+
+  def __init__(self, submenu_name, parent=None):
+    super().__init__(parent)
+    for mb in self.modebuttons:  # remove workspace buttons set in super
+      self.layout().removeWidget(mb)
+    self.modebuttons = None
+
+    self.submenu_data = LdSubmenu(submenu_name)
+
+  def choose_action(self):
+    dialog = ConfigActionDialog(self.sender())
+    dialog.action_selected.connect(self.on_action_selected)
+    dialog.show()
+
+  def on_action_selected(self, action):
+    key_id = self.sender().parent().objectName()
+    if action:
+      self.submenu_data.action.actions[key_id] = action
+      self.sender().parent().setToolTip(action.summary)
+    else:
+      self.submenu_data.action.actions[key_id] = LdAction()
+      self.sender().parent().setToolTip("")
+
+  def choose_image(self):
+    print("executes SubmenuConfiguration method")
+    dialog = ConfigImgDialog(self.sender())
+    if (dialog.exec_()):
+      path = dialog.user_img.text()
+      key_id = self.sender().objectName()
+      self.submenu_data.action.images[key_id] = path
+      self.sender().parent().set_image(path)  # setting image to the tb/dis widget
+      self.sender().setToolTip(path)
 
 
 class Widget (QFrame):

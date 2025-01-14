@@ -1,7 +1,7 @@
 import json, os
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, pyqtSignal
 import pyautogui
 
 
@@ -93,12 +93,18 @@ class LdWorkspace(QObject):
 
 
 class LdAction (QObject):
-  type ActionType = Literal["command", "hotkey", "none"]
+  type ActionType = Literal["command", "hotkey", "submenu", "none"]
 
-  def __init__(self, action_type: ActionType ="none", action: str =""):
+  def __init__(self, action_type: ActionType ="none", action="", summary=""):
     super().__init__()
     self.a_type = action_type
     self.action = action
+    if summary:
+      self.summary = summary
+    elif action_type == "command" or action_type == "hotkey":
+      self.summary = self.action
+    else:
+      self.summary = "none"
 
   def execute(self):
     if self.a_type == "command":
@@ -106,12 +112,44 @@ class LdAction (QObject):
     elif self.a_type == "hotkey":
       hotkey = self.action.lower().split("+")
       pyautogui.hotkey(hotkey)
+    else:
+      print("no action to execute")
 
   def to_JSON(self):
-    s = {"a_type": str(self.a_type), "action": self.action}
+    if isinstance(self.action, str):
+      s = {"a_type": str(self.a_type), "action": self.action}
+    elif isinstance(self.action, LdWorkspace):
+      s = {"a_type": str(self.a_type), "action": self.action.to_JSON()}
+    else:
+      print("this shouldn't happen, please report the bug to the developer'")
     return s
 
   def from_JSON(json_str):
       lda = LdAction(action_type=json_str["a_type"], action=json_str["action"])
       return lda
+
+
+class LdSubmenu (LdAction):
+  def __init__(self, name):
+    super().__init__()
+    self.a_type = "submenu"
+    self.action = LdWorkspace(name)
+    self.summary = ""
+    self.name = ""
+    self.setName(name)
+
+  def execute(self):
+    print("submenu %s execute" % self.summary)
+
+  def to_JSON(self):
+    s = self.action.to_JSON()
+    return s
+
+  def from_json(self, json_str):
+    self.action.from_JSON(json_str)
+    self.name = self.action.profile
+
+  def setName(self, str):
+    self.name = str
+    self.summary = "%s %s" % (self.a_type, self.name)
 
