@@ -4,13 +4,21 @@ Loupedeck live configuration application for linux.
 
 ## Goal
 
-This is an attemps to provide Linux platforms with something similar to what the original loupedeck app offer on Windows and MacOS platform.
+This is an attemps to provide Linux platforms with something similar to what the original loupedeck app offers on Windows and MacOS platform.
 
 ## Current status
 
-Can program touchbutton images and can configure actions(shell commands or hotkey) to be executed when a touchbutton or an encoder is pressed/rotated
+Can program touchbutton images and can configure actions to be executed when a touchbutton or an encoder is pressed/rotated.
 
-Can save images and actions to a profile file, can restore the profile, restoring will update the GUI and load back images to the loupedeck device 
+At this point of the development the actions available are 
+
+* execute shell commands
+
+* send a hotkey shorto the OS
+
+* open a submenu on the Loupedeck device, which can hold itself other commands
+
+Can save images and actions to a profile file, can restore the profile, restoring will update the GUI and load back images to the loupedeck device.
 
 Workspaces concept implemented on physical buttons 0-7
 
@@ -18,15 +26,9 @@ Workspaces concept implemented on physical buttons 0-7
 
 ### In priority
 
-* Implement a submenu feature, allowing to display a sub-workspace by pressing a touchdisplay action. 
-    
-    It must implements a return back control that restore the previous workspace context
-    
-    It must be able to temporary alter the actions and images of each control on the device.
-    
-    Maybe use left display to show where you are in the workspace/submenu hierarchy
-
 * Implement a handler to get the currently focused app from the desktop manager and alter the current workspace based on it.
+
+* Use left display to show where you are in the workspace/submenu hierarchy
 
 ### Next by order or priority
 
