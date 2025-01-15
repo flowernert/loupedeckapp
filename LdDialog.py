@@ -26,7 +26,7 @@ class ConfigActionDialog (QDialog):
     self.b_hk.clicked.connect(self.display_hk_select)
     self.b_sub.clicked.connect(self.display_submenu_config)
 
-    self.user_action = QLabel("Select command or hotkey")
+    self.user_action = QLabel("Select command, hotkey or submenu")
     self.hotkey_input = QKeySequenceEdit()
     self.hotkey_input.editingFinished.connect(self.update_key_sequence)
     self.hotkey_input.setVisible(False)
@@ -44,31 +44,49 @@ class ConfigActionDialog (QDialog):
     self.b_reset.setDisabled(True)
 
     # restore previous action if existing
-    action = QApplication.instance().current_ws().actions[parent.objectName()]
+    action = QApplication.instance().current_menu().actions[parent.objectName()]
     if action:
       self.selected_action = action
       if action.a_type == "command":
         self.b_cmd.setDisabled(True)
         self.b_cmd.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
         self.b_hk.setDisabled(True)
+        self.b_sub.setDisabled(True)
         self.user_action.setVisible(False)
         self.command_input.setVisible(True)
         self.command_input.setText(action.action)
         self.command_input.setFocus()
         self.hotkey_input.setVisible(False)
         self.hotkey_input.setEnabled(False)
+        self.submenu_name_input.setVisible(False)
+        self.submenu_name_input.setEnabled(False)
       elif action.a_type == "hotkey":
         self.b_hk.setDisabled(True)
         self.b_hk.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
         self.b_cmd.setDisabled(True)
+        self.b_sub.setDisabled(True)
         self.user_action.setVisible(False)
         self.hotkey_input.setVisible(True)
         self.hotkey_input.setKeySequence(QKeySequence(action.action))
         self.hotkey_input.setEnabled(False)
         self.command_input.setVisible(False)
         self.command_input.setEnabled(False)
+        self.submenu_name_input.setVisible(False)
+        self.submenu_name_input.setEnabled(False)
       elif action.a_type == "submenu":
-        print("not implemented yet")
+        self.b_sub.setDisabled(True)
+        self.b_sub.setStyleSheet("QPushButton { border: 2px solid dimgrey; }")
+        self.b_cmd.setDisabled(True)
+        self.b_hk.setDisabled(True)
+        self.user_action.setVisible(False)
+        self.submenu_name_input.setVisible(True)
+        self.submenu_name_input.setText(action.name)
+        self.submenu_name_input.setEnabled(False)
+        self.hotkey_input.setVisible(False)
+        self.hotkey_input.setEnabled(False)
+        self.command_input.setVisible(False)
+        self.command_input.setEnabled(False)
+
       self.b_reset.setEnabled(True)
       self.but_box.setEnabled(True)
 
@@ -154,7 +172,6 @@ class ConfigActionDialog (QDialog):
     self.selected_action = None
 
   def on_submenu_configured(self, submenu_data):
-    #print(submenu_data.to_JSON())
     self.selected_action = submenu_data
     self.submenu_name_input.setEnabled(True)
     self.b_reset.setEnabled(True)
@@ -224,7 +241,7 @@ class ConfigImgDialog (QDialog):
     self.user_img = QLineEdit(self)
     self.user_img.setClearButtonEnabled(True)
     ldApp = QApplication.instance()
-    value = ldApp.current_ws().images[parent.objectName()]
+    value = ldApp.current_menu().images[parent.objectName()]
     self.user_img.setText(value)
 
     path_select_but = QPushButton("Open file selector ...", self)

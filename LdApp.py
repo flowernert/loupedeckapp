@@ -126,7 +126,7 @@ class LdApp(QApplication):
 
   def on_image_selected(self, image_path):
     sender_id = self.sender().parent().objectName()
-    self.current_ws().images[sender_id] = image_path
+    self.current_menu().images[sender_id] = image_path
     if "tb" in sender_id:
       keycode = self.tb_name_to_keycode(sender_id)
       self.set_img_to_touchbutton(image_path, keycode)
@@ -138,9 +138,9 @@ class LdApp(QApplication):
   def on_action_selected(self, ld_action):
     sender_id = self.sender().parent().objectName()
     if ld_action:
-      self.current_ws().actions[sender_id] = ld_action
+      self.current_menu().actions[sender_id] = ld_action
     else:
-      self.current_ws().actions[sender_id] = LdAction()
+      self.current_menu().actions[sender_id] = LdAction()
 
   def set_img_to_touchbutton(self, image_path, keycode):
     with open(image_path, "rb") as infile:
@@ -161,6 +161,12 @@ class LdApp(QApplication):
 
   def current_ws(self):
     return self.config.workspaces[self.ws_keys.index(self.selected_ws)]
+
+  def current_menu(self):
+    if self.submenu_stack:
+      return self.submenu_stack[-1].action
+    else:
+      return self.current_ws()
     
   def get_ws(self, key):
     return self.config.workspaces[self.ws_keys.index(key)]
@@ -199,25 +205,24 @@ class LdApp(QApplication):
       row = 3
     return "enc" + str(row) + knob[5]
 
-  def on_submenu_is_opened(self, submenu):
-    #set a return button on tb11 and disable any editing of its image/action
-    #implement a handler to restore the context when the back/return button is pressed
-
+  def load_workspace(self, ws):
     self.ld_widget.reset_images()
-    submenu_ws = submenu.action
-    for key, path in submenu_ws.images.items():
+    self.ld_device.reset()
+
+    for key, path in ws.images.items():
       widget = self.ld_widget.elements["root_" + key]
       if widget and path:
         widget.set_image(path)
+        widget.update()
         widget.img_edit.setToolTip(path)
         if "tb" in widget.objectName() :
           self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
         elif "dis" in widget.objectName():
           self.set_img_to_touchdisplay(path, key[4], int(key[3]))
         else:
-          print("load_profile: unknown identifier, please report the bug to the developer")
+          print("load_ws: unknown image key, please report the bug to the developer %s" % widget.objectName())
 
-    for key, action in submenu_ws.actions.items():
+    for key, action in ws.actions.items():
       widget = self.ld_widget.elements["root_" + key.strip("lr-")]
       if widget and action:
         if len(key)<=5:
@@ -226,52 +231,63 @@ class LdApp(QApplication):
           widget.right_action_edit.setToolTip(action.summary)
         elif key.endswith("-l"):
           widget.left_action_edit.setToolTip(action.summary)
+        else:
+          print("load_ws unknown action key, please report to the developer %s" % key)
+
+  def on_submenu_is_opened(self, submenu):
+    submenu_ws = submenu.action
+    self.load_workspace(submenu_ws)
+
+  def on_submenu_is_closed(self):
+    self.load_workspace(self.current_menu())
+
+  def on_touch_press(self, str_key, action):
+    if self.submenu_stack:  # if a submenu is currently opened and one of its key has been pressed
+      if action.a_type == "submenu":
+        self.on_submenu_is_opened(action)
+      elif action.a_type == "back":
+        self.submenu_stack.pop()
+        self.on_submenu_is_closed()
+      else:
+        action.execute()  # executes submenu command
+    else:
+      if action.a_type == "submenu":
+        self.submenu_stack.append(action)
+        self.on_submenu_is_opened(action)
+      elif action.a_type == "back":
+        print("back from basemenu, shouldn't happen!! Please report to the developper")
+      else:
+        action = self.current_ws().actions[str_key]
+        action.execute() # executes main menu command
 
   def on_touchkey_press(self, key):
     row = floor(key/4)+1
     col = floor(key-(4*(row-1)))+1
     str_key = "tb" + str(row) + str(col)
-
-    if self.submenu_stack:  # if a submenu is currently opened and one of its key has been pressed
-      action = self.submenu_stack[-1].action.actions[str_key]
-      if action.a_type == "submenu":
-        print("submenu opened from submenu")
-        self.on_submenu_is_opened(action)
-      else:
-        print("submenu command executed %s" % action.action)
-        action.execute()  # executes submenu command
-        submenu = self.submenu_stack.pop()
-    else:
-      action = self.current_ws().actions[str_key]
-      if action.a_type == "submenu":
-        print("submenu opened from basemenu")
-        self.submenu_stack.append(action)
-        self.on_submenu_is_opened(action)
-      else:
-        print("basemenu command executed")
-        action = self.current_ws().actions[str_key]
-        action.execute() # executes main menu command
+    action = self.current_menu().actions[str_key]
+    self.on_touch_press(str_key, action)
 
   def on_touchdisplay_press(self, x, y):
     str_key = self.td_pos_to_display_name(x, y)
-    self.current_ws().actions[str_key].execute()
+    action = self.current_menu().actions[str_key]
+    self.on_touch_press(str_key, action)
 
   def on_encoder_press(self, encoder):
     str_key = self.knob_to_enc_name(encoder)
-    self.current_ws().actions[str_key].execute()
+    self.current_menu().actions[str_key].execute()
 
   def on_encoder_rotate(self, encoder, direction):
     str_key = self.knob_to_enc_name(encoder) + "-" + direction[0]
-    self.current_ws().actions[str_key].execute()
+    self.current_menu().actions[str_key].execute()
 
   def on_workspace_press(self, ws_key):
     current_ws = self.selected_ws
     self.ld_device.set_button_color(current_ws, (63, 63, 63))  # dim white
     self.selected_ws = ws_key
     self.ld_device.set_button_color(ws_key, "green")  # selected button in green
-    self.ld_device.reset()
-    self.ld_widget.reset_images()
-    
+
+    self.load_workspace(self.get_ws(ws_key))
+
     ws_config = self.get_ws(ws_key).images.items()
     for key, path in ws_config:
       widget = self.ld_widget.elements["root_" + key]
@@ -294,7 +310,8 @@ class LdApp(QApplication):
           widget.right_action_edit.setToolTip(action.summary)
         elif key.endswith("-l"):
           widget.left_action_edit.setToolTip(action.summary)
-
+        else:
+          print("load_profile: unknown identifier, please report the bug to the developer")
 
   def close(self, event):
     if hasattr(self, "ld_device") and self.ld_device:

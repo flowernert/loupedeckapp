@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QDialogButtonBox, QFrame, QPushButton, QHBo
 from PyQt5.QtGui import QPixmap, QPainter, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PIL import Image, ImageColor
-from LdConfiguration import LdConfiguration, LdSubmenu
+from LdConfiguration import LdConfiguration, LdSubmenu, LdAction
 from LdDialog import ConfigActionDialog, ConfigImgDialog
 
 
@@ -92,15 +92,20 @@ class LoupedeckWidget (QWidget):
       self.sender().parent().setToolTip("")
 
   def choose_image(self):
-    print("executes Loupedeck method")
     ldApp = QApplication.instance()
     sender_id = self.sender().objectName()
     dialog = ConfigImgDialog(self.sender())
     dialog.image_selected.connect(ldApp.on_image_selected)
-    if (dialog.exec_()):
-      path = dialog.user_img.text()
-      self.sender().parent().set_image(path)  # setting image to the tb/dis widget
-      self.sender().setToolTip(path)
+    dialog.image_selected.connect(self.on_image_selected)
+    dialog.show()
+
+  def on_image_selected(self, img_path):
+    if img_path:
+      self.sender().parent().parent().set_image(img_path)  # setting image to the tb/dis widget
+      self.sender().parent().setToolTip(img_path)
+    else:
+      self.sender().parent().parent().set_image("")
+      self.sender().parent().setToolTip("")
 
   def reset_images(self):
     for tb in self.touchbuttons.values():
@@ -111,13 +116,27 @@ class LoupedeckWidget (QWidget):
 
 class SubmenuConfigurationWidget(LoupedeckWidget):
 
+  back_but_path = "Images/submenu_back_button.png"
+
   def __init__(self, submenu_name, parent=None):
     super().__init__(parent)
-    for mb in self.modebuttons:  # remove workspace buttons set in super
+
+    # remove workspace buttons that were set in super
+    for mb in self.modebuttons:
       self.layout().removeWidget(mb)
     self.modebuttons = None
 
+    # disable top left display of being edited (reserved for back button)
+    top_left_display = self.displays["root_dis1L"]
+    top_left_display.action_edit.setDisabled(True)
+    top_left_display.action_edit.setVisible(False)
+    top_left_display.img_edit.setDisabled(True)
+    top_left_display.img_edit.setVisible(False)
+    top_left_display.set_image(self.back_but_path)
+
     self.submenu_data = LdSubmenu(submenu_name)
+    self.submenu_data.action.images["dis1L"] = self.back_but_path
+    self.submenu_data.action.actions["dis1L"] = LdAction(action_type="back", action="back")
 
   def choose_action(self):
     dialog = ConfigActionDialog(self.sender())
@@ -128,20 +147,22 @@ class SubmenuConfigurationWidget(LoupedeckWidget):
     key_id = self.sender().parent().objectName()
     if action:
       self.submenu_data.action.actions[key_id] = action
-      self.sender().parent().setToolTip(action.summary)
     else:
       self.submenu_data.action.actions[key_id] = LdAction()
-      self.sender().parent().setToolTip("")
+    super().on_action_selected(action)
 
   def choose_image(self):
-    print("executes SubmenuConfiguration method")
     dialog = ConfigImgDialog(self.sender())
-    if (dialog.exec_()):
-      path = dialog.user_img.text()
-      key_id = self.sender().objectName()
-      self.submenu_data.action.images[key_id] = path
-      self.sender().parent().set_image(path)  # setting image to the tb/dis widget
-      self.sender().setToolTip(path)
+    dialog.image_selected.connect(self.on_image_selected)
+    dialog.show()
+
+  def on_image_selected(self, img_path):
+    key_id = self.sender().parent().objectName()
+    if img_path:
+      self.submenu_data.action.images[key_id] = img_path
+    else:
+      self.submenu_data.action.images[key_id] = ""
+    super().on_image_selected(img_path)
 
 
 class Widget (QFrame):
