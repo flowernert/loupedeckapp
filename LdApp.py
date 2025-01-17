@@ -144,8 +144,7 @@ class LdApp(QApplication):
 
   def set_img_to_touchbutton(self, image_path, keycode):
     with open(image_path, "rb") as infile:
-        image = Image.open(infile).convert("RGBA")
-        image.thumbnail((90,90))
+        image = Image.open(infile).convert("RGBA").resize((90, 90))
         self.ld_device.set_key_image(keycode, image)
 
   def set_img_to_touchdisplay(self, image_path, side, row, auto_refresh=True):
