@@ -1,5 +1,6 @@
 import LdWidget as ldw
 from LdConfiguration import LdAction
+from LdDialog import ConfigImgDialog
 
 from Loupedeck import DeviceManager
 from Loupedeck.Devices import LoupedeckLive
@@ -27,6 +28,7 @@ class LdApp(QApplication):
     self.main_window = QMainWindow()
     self.main_window.setWindowTitle("Loupedeck Live control")
     self.ld_widget = ldw.LoupedeckWidget(self.main_window)
+    self.location = QLabel(self.selected_ws)
     self.config = self.ld_widget.config
     self.profile = QLineEdit()
     self.save_but = QPushButton("Save profile", self.main_window)
@@ -38,6 +40,7 @@ class LdApp(QApplication):
     profile_widget = QWidget(self.main_window)
     profile_widget.setLayout(hlayout)
     vlayout = QVBoxLayout()
+    vlayout.addWidget(self.location)
     vlayout.addWidget(self.ld_widget)
     vlayout.addWidget(profile_widget)
     vwidget = QWidget(self.main_window)
@@ -134,6 +137,7 @@ class LdApp(QApplication):
       side = sender_id[4]
       row = int(sender_id[3])
       self.set_img_to_touchdisplay(image_path, side, row)
+    self.ld_widget.update()
 
   def on_action_selected(self, ld_action):
     sender_id = self.sender().parent().objectName()
@@ -212,8 +216,6 @@ class LdApp(QApplication):
       widget = self.ld_widget.elements["root_" + key]
       if widget and path:
         widget.set_image(path)
-        widget.update()
-        widget.img_edit.setToolTip(path)
         if "tb" in widget.objectName() :
           self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
         elif "dis" in widget.objectName():
@@ -224,14 +226,16 @@ class LdApp(QApplication):
     for key, action in ws.actions.items():
       widget = self.ld_widget.elements["root_" + key.strip("lr-")]
       if widget and action:
-        if len(key)<=5:
-          widget.action_edit.setToolTip(action.summary)
-        elif key.endswith("-r"):
-          widget.right_action_edit.setToolTip(action.summary)
-        elif key.endswith("-l"):
-          widget.left_action_edit.setToolTip(action.summary)
-        else:
-          print("load_ws unknown action key, please report to the developer %s" % key)
+        widget.set_action(action, key)
+
+    self.ld_widget.update()
+
+    location = self.selected_ws
+    if self.submenu_stack:
+      location = location + " > " + " > ".join([s.name for s in self.submenu_stack])
+      print(location)
+
+    self.location.setText(location)
 
   def on_submenu_is_opened(self, submenu):
     submenu_ws = submenu.action
@@ -286,31 +290,6 @@ class LdApp(QApplication):
     self.ld_device.set_button_color(ws_key, "green")  # selected button in green
 
     self.load_workspace(self.get_ws(ws_key))
-
-    ws_config = self.get_ws(ws_key).images.items()
-    for key, path in ws_config:
-      widget = self.ld_widget.elements["root_" + key]
-      if widget and path:
-        widget.set_image(path)
-        widget.img_edit.setToolTip(path)
-        if "tb" in widget.objectName() :
-          self.set_img_to_touchbutton(path, self.tb_name_to_keycode(key))
-        elif "dis" in widget.objectName():
-          self.set_img_to_touchdisplay(path, key[4], int(key[3]))
-        else:
-          print("load_profile: unknown identifier, please report the bug to the developer")
-
-    for key, action in self.get_ws(ws_key).actions.items():
-      widget = self.ld_widget.elements["root_" + key.strip("lr-")]
-      if widget and action:
-        if len(key)<=5:
-          widget.action_edit.setToolTip(action.summary)
-        elif key.endswith("-r"):
-          widget.right_action_edit.setToolTip(action.summary)
-        elif key.endswith("-l"):
-          widget.left_action_edit.setToolTip(action.summary)
-        else:
-          print("load_profile: unknown identifier, please report the bug to the developer")
 
   def close(self, event):
     if hasattr(self, "ld_device") and self.ld_device:

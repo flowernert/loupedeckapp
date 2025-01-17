@@ -22,26 +22,35 @@ class ConfigActionDialog (QDialog):
     self.b_hk = QPushButton("Execute a hotkey")
     self.b_sub = QPushButton("Open a submenu")
 
-    self.b_cmd.clicked.connect(self.display_cmd_select)
-    self.b_hk.clicked.connect(self.display_hk_select)
-    self.b_sub.clicked.connect(self.display_submenu_config)
+    self.b_cmd.clicked.connect(self.display_cmd_selected)
+    self.b_hk.clicked.connect(self.display_hk_selected)
+    self.b_sub.clicked.connect(self.display_submenu_config_selected)
 
     self.user_action = QLabel("Select command, hotkey or submenu")
-    self.hotkey_input = QKeySequenceEdit()
-    self.hotkey_input.editingFinished.connect(self.update_key_sequence)
-    self.hotkey_input.setVisible(False)
+
+    self.b_cmd.setFocus()
     self.command_input = QLineEdit()
     self.command_input.setVisible(False)
+    self.command_input.setEnabled(False)
+    self.command_input.textEdited.connect(self.on_cmd_updated)
+
+    self.hotkey_input = QKeySequenceEdit()
+    self.hotkey_input.setVisible(False)
+    self.hotkey_input.setEnabled(False)
+    self.hotkey_input.editingFinished.connect(self.on_key_sequence_updated)
+
     self.submenu_name_input = QLineEdit()
     self.submenu_name_input.setVisible(False)
+    self.submenu_name_input.setEnabled(False)
 
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)
     self.but_box.rejected.connect(self.reject)
-    self.but_box.setDisabled(True)
+    self.but_box.setEnabled(False)
+
     self.b_reset = QPushButton("Reset action")
     self.b_reset.clicked.connect(self.reset_action_selection)
-    self.b_reset.setDisabled(True)
+    self.b_reset.setEnabled(False)
 
     # restore previous action if existing
     action = QApplication.instance().current_menu().actions[parent.objectName()]
@@ -87,8 +96,9 @@ class ConfigActionDialog (QDialog):
         self.command_input.setVisible(False)
         self.command_input.setEnabled(False)
 
-      self.b_reset.setEnabled(True)
-      self.but_box.setEnabled(True)
+      if action.a_type != "none":
+        self.b_reset.setEnabled(True)
+        self.but_box.setEnabled(True)
 
     action_but_layout = QHBoxLayout()
     action_but_layout.addWidget(self.b_cmd)
@@ -109,7 +119,7 @@ class ConfigActionDialog (QDialog):
 
     self.setLayout(vlayout)
 
-  def display_cmd_select(self):
+  def display_cmd_selected(self):
     self.b_hk.setDisabled(True)
     self.b_cmd.setDisabled(True)
     self.b_sub.setDisabled(True)
@@ -117,12 +127,12 @@ class ConfigActionDialog (QDialog):
     self.user_action.setVisible(False)
     self.hotkey_input.setVisible(False)
     self.command_input.setVisible(True)
+    self.command_input.setEnabled(True)
     self.command_input.setFocus()
     self.command_input.setClearButtonEnabled(True)
     self.b_reset.setEnabled(True)
-    self.but_box.setEnabled(True)
 
-  def display_hk_select(self):
+  def display_hk_selected(self):
     self.b_cmd.setDisabled(True)
     self.b_hk.setDisabled(True)
     self.b_sub.setDisabled(True)
@@ -132,8 +142,9 @@ class ConfigActionDialog (QDialog):
     self.hotkey_input.setVisible(True)
     self.hotkey_input.setEnabled(True)
     self.hotkey_input.setFocus()
+    self.b_reset.setEnabled(True)
 
-  def display_submenu_config(self):
+  def display_submenu_config_selected(self):
     self.b_hk.setDisabled(True)
     self.b_cmd.setDisabled(True)
     self.b_sub.setDisabled(True)
@@ -147,7 +158,18 @@ class ConfigActionDialog (QDialog):
     submenu.submenu_configured.connect(self.on_submenu_configured)
     submenu.show()
 
-  def update_key_sequence(self):
+  def on_key_sequence_updated(self):
+    self.but_box.setEnabled(True)
+
+  def on_cmd_updated(self, str):
+    if str:
+      self.but_box.setEnabled(True)
+    else:
+      self.but_box.setEnabled(False)
+
+  def on_submenu_configured(self, submenu_data):
+    self.selected_action = submenu_data
+    self.submenu_name_input.setEnabled(True)
     self.b_reset.setEnabled(True)
     self.but_box.setEnabled(True)
 
@@ -171,12 +193,6 @@ class ConfigActionDialog (QDialog):
     self.but_box.setDisabled(True)
     self.selected_action = None
 
-  def on_submenu_configured(self, submenu_data):
-    self.selected_action = submenu_data
-    self.submenu_name_input.setEnabled(True)
-    self.b_reset.setEnabled(True)
-    self.but_box.setEnabled(True)
-
   def accept(self):
     ldApp = QApplication.instance()
     if self.command_input.isVisible():
@@ -196,38 +212,7 @@ class ConfigActionDialog (QDialog):
 
   def reject(self):
     if self.selected_action is None:  # reset button has been pressed and no other action has been set
-      self.action_selected.emit(None)
-    super().reject()
-
-
-class ConfigCmd (QDialog):
-  cmd_selected = pyqtSignal(str)  #command
-
-  def __init__(self, parent):
-    QDialog.__init__(self, parent)
-    self.setWindowTitle("Configure command to be executed when pressed")
-
-    self.user_cmd = QLineEdit(self)
-    self.user_cmd.setClearButtonEnabled(True)
-    value = QApplication.instance().current_ws().actions[parent.objectName()]
-    if value:
-      self.user_cmd.setText(value)
-    else:
-      self.user_cmd.setText("./Launcher/")
-    self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
-    self.but_box.accepted.connect(self.accept)
-    self.but_box.rejected.connect(self.reject)
-
-    layout = QVBoxLayout()
-    layout.addWidget(self.user_cmd)
-    layout.addWidget(self.but_box)
-    self.setLayout(layout)
-  
-  def accept(self):
-    self.cmd_selected.emit(self.user_cmd.text())
-    super().accept()
-
-  def reject(self):
+      self.action_selected.emit(LdAction())
     super().reject()
 
 
@@ -277,9 +262,11 @@ class ConfigSubmenuDialog(QDialog):
 
   submenu_configured = pyqtSignal(ldw.LdSubmenu)
 
+  # 1st parent is ConfigActionDialog that opened the config submenu dialog, 
+  # parent_key_id is the key in the current workspace that led to opening the config submenu dialog
   def __init__(self, parent, submenu_name=""):
     QDialog.__init__(self, parent)
-    self.submenu = ldw.SubmenuConfigurationWidget("test")
+    self.submenu = ldw.SubmenuConfigurationWidget(self, "test")
 
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)

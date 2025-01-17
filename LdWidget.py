@@ -68,7 +68,7 @@ class LoupedeckWidget (QWidget):
       self.encoders[encoderR.objectName()] = encoderR
 
     pages = [ModeButton(str(i)) for i in range(8)]
-    _ = [layout.addWidget(pages[i], 4, i) for i in range(8)]
+    _ = [layout.addWidget(pages[i], 4, i, alignment=Qt.AlignCenter) for i in range(8)]
     self.modebuttons = pages
 
     self.elements.update(self.encoders)
@@ -86,10 +86,8 @@ class LoupedeckWidget (QWidget):
     dialog.show()
 
   def on_action_selected(self, action):
-    if action:
-      self.sender().parent().setToolTip(action.summary)
-    else:
-      self.sender().parent().setToolTip("")
+    b = self.sender().parent()
+    b.parent().set_action(action, b.objectName())
 
   def choose_image(self):
     ldApp = QApplication.instance()
@@ -100,12 +98,8 @@ class LoupedeckWidget (QWidget):
     dialog.show()
 
   def on_image_selected(self, img_path):
-    if img_path:
-      self.sender().parent().parent().set_image(img_path)  # setting image to the tb/dis widget
-      self.sender().parent().setToolTip(img_path)
-    else:
-      self.sender().parent().parent().set_image("")
-      self.sender().parent().setToolTip("")
+    b = self.sender().parent()
+    b.parent().set_image(img_path)  # setting image to the tb/dis widget
 
   def reset_images(self):
     for tb in self.touchbuttons.values():
@@ -118,7 +112,7 @@ class SubmenuConfigurationWidget(LoupedeckWidget):
 
   back_but_path = "Images/submenu_back_button.png"
 
-  def __init__(self, submenu_name, parent=None):
+  def __init__(self, parent, submenu_name):
     super().__init__(parent)
 
     # remove workspace buttons that were set in super
@@ -144,12 +138,13 @@ class SubmenuConfigurationWidget(LoupedeckWidget):
     dialog.show()
 
   def on_action_selected(self, action):
-    key_id = self.sender().parent().objectName()
+    key = self.sender().parent().objectName()
     if action:
-      self.submenu_data.action.actions[key_id] = action
+      self.submenu_data.action.actions[key] = action
     else:
-      self.submenu_data.action.actions[key_id] = LdAction()
+      self.submenu_data.action.actions[key] = LdAction()
     super().on_action_selected(action)
+    self.update()
 
   def choose_image(self):
     dialog = ConfigImgDialog(self.sender())
@@ -163,6 +158,7 @@ class SubmenuConfigurationWidget(LoupedeckWidget):
     else:
       self.submenu_data.action.images[key_id] = ""
     super().on_image_selected(img_path)
+    self.update()
 
 
 class Widget (QFrame):
@@ -175,6 +171,12 @@ class Widget (QFrame):
     vlayout = QVBoxLayout()
     vlayout.addWidget(self.action_edit, alignment=Qt.AlignRight|Qt.AlignTop)
     self.setLayout(vlayout)
+
+  def set_action(self, action, key=None):
+    if action:
+      color = "green" if action.a_type != "none" else "black"
+      self.action_edit.setToolTip(action.summary)
+      self.action_edit.setStyleSheet("QPushButton#%s {color:%s;}" % (self.action_edit.objectName(), color))
 
 
 class Display (Widget):
@@ -190,14 +192,24 @@ class Display (Widget):
 
   def set_image(self, img_path):
     self.image = QPixmap(img_path)
-    if not self.image.isNull():
-      self.image = self.image.scaled(QSize(90, 90), Qt.KeepAspectRatio)
-    self.update()
+    if not self.image.isNull() and img_path:
+      self.image = self.image.scaled(self.size(), Qt.KeepAspectRatio)
+      self.img_edit.setToolTip(img_path)
+      self.img_edit.setStyleSheet("QPushButton#%s {color:green;}" % self.img_edit.objectName())
+    else:
+      self.img_edit.setToolTip("")
+      self.img_edit.setStyleSheet("QPushButton#%s {color:black;}" % self.img_edit.objectName())
 
   def paintEvent(self, qpaint_event):
     if not self.image.isNull():
       qpainter = QPainter(self)
-      qpainter.drawPixmap(0, 0, self.image)
+      # in order not to cover the widget borders
+      margin=2
+      size = self.size()
+      yshift = int((90-size.width())/2)
+      xsub = int(size.width()-margin*2)
+      ysub = int(size.width()-margin*2)
+      qpainter.drawPixmap(margin, yshift+margin, xsub, ysub, self.image)
     QFrame.paintEvent(self, qpaint_event)
 
 
@@ -210,7 +222,7 @@ class Encoder (Widget):
     self.left_action_edit.setFixedSize(25, 20)
     self.right_action_edit = QPushButton("R", self)
     self.right_action_edit.setFixedSize(25, 20)
-    self.setStyleSheet("QFrame { border: 2px solid darkgrey; border-radius: 40px;}")
+    self.setStyleSheet("QFrame { border: 4px solid darkgrey; border-radius: 40px;}")
 
     hlayout = QHBoxLayout()
     hlayout.addWidget(self.left_action_edit, alignment=Qt.AlignLeft|Qt.AlignBottom)
@@ -220,10 +232,26 @@ class Encoder (Widget):
     vlayout.addLayout(hlayout)
     self.setLayout(vlayout)
 
+  def set_action(self, action, key):
+    if action and key and action.a_type != "none":
+      color = "green" if action.a_type != "none" else "black"
+      if len(key)<=5:
+        super().set_action(action, key)
+      elif key.endswith("-r"):
+        self.right_action_edit.setToolTip(action.summary)
+        self.right_action_edit.setStyleSheet("QPushButton#%s {color:%s;}" % (self.right_action_edit.objectName(), color))
+      elif key.endswith("-l"):
+        self.left_action_edit.setToolTip(action.summary)
+        self.left_action_edit.setStyleSheet("QPushButton#%s {color:%s;}" % (self.left_action_edit.objectName(), color))
+      else:
+        print("load_ws unknown action key, please report to the developer %s" % key)
+#    self.update()
+
 
 class TouchButton (Display):
   def __init__(self):
     super().__init__()
+    self.setFixedSize(90, 90)
 
 
 class TouchDisplay (Display):
@@ -235,6 +263,6 @@ class TouchDisplay (Display):
 class ModeButton (QPushButton):
   def __init__(self, text):
     super().__init__(text)
-    self.setFixedSize(80, 80)
-    self.setStyleSheet("QPushButton { border: 2px solid darkgrey; border-radius: 40px;}")
+    self.setFixedSize(70, 70)
+    self.setStyleSheet("QPushButton { border: 2px solid darkgrey; border-radius: 35px;}")
 
