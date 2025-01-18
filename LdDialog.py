@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PIL import Image, ImageColor
 from pathlib import Path
 
-from LdConfiguration import LdAction
+from LdConfiguration import LdAction, LdSubmenu
 import LdWidget as ldw
 
 
@@ -15,6 +15,7 @@ class ConfigActionDialog (QDialog):
 
   def __init__(self, parent):
     QDialog.__init__(self, parent)
+    self.setModal(True)
     self.setWindowTitle("Configure action when pressed")
 
     self.action_type_select = QButtonGroup()
@@ -42,6 +43,7 @@ class ConfigActionDialog (QDialog):
     self.submenu_name_input = QLineEdit()
     self.submenu_name_input.setVisible(False)
     self.submenu_name_input.setEnabled(False)
+    self.submenu_name_input.textEdited.connect(self.on_submenu_name_updated)
 
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)
@@ -153,10 +155,7 @@ class ConfigActionDialog (QDialog):
     self.command_input.setVisible(False)
     self.hotkey_input.setVisible(False)
     self.submenu_name_input.setVisible(True)
-    self.submenu_name_input.setEnabled(False)
-    submenu = ConfigSubmenuDialog(self, "test")
-    submenu.submenu_configured.connect(self.on_submenu_configured)
-    submenu.show()
+    self.submenu_name_input.setEnabled(True)
 
   def on_key_sequence_updated(self):
     self.but_box.setEnabled(True)
@@ -166,6 +165,9 @@ class ConfigActionDialog (QDialog):
       self.but_box.setEnabled(True)
     else:
       self.but_box.setEnabled(False)
+
+  def on_submenu_name_updated(self, str):
+    self.on_cmd_updated(str)
 
   def on_submenu_configured(self, submenu_data):
     self.selected_action = submenu_data
@@ -202,9 +204,16 @@ class ConfigActionDialog (QDialog):
       self.selected_action = LdAction("hotkey", self.hotkey_input.keySequence().toString())
       self.action_selected.emit(self.selected_action)
     elif self.submenu_name_input.isVisible():
-      s = self.submenu_name_input.text()
-      if s:
-        self.selected_action.setName(s)
+      name = self.submenu_name_input.text()
+      print("name :%s" % name)
+      submenu = LdSubmenu(name)
+      submenu.setName(name)
+      self.selected_action = submenu
+
+      # top left display reserved for submenu back button
+      submenu.action.images["dis1L"] = ldApp.back_but_path
+      submenu.action.actions["dis1L"] = LdAction(action_type="back", action="back")
+
       self.action_selected.emit(self.selected_action)
     else:
       print("no action selected, this is a bug and shouldn't happen', please report to the developer")
@@ -221,6 +230,7 @@ class ConfigImgDialog (QDialog):
 
   def __init__(self, parent):
     QDialog.__init__(self, parent)
+    self.setModal(True)
     self.setWindowTitle("Configure image to be displayed")
 
     self.user_img = QLineEdit(self)
@@ -231,6 +241,7 @@ class ConfigImgDialog (QDialog):
 
     path_select_but = QPushButton("Open file selector ...", self)
     path_select_but.clicked.connect(self.path_selection_popup)
+    path_select_but.setFocus()
 
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
     self.but_box.accepted.connect(self.accept)
@@ -247,16 +258,19 @@ class ConfigImgDialog (QDialog):
                                          "Select the image to load",
                                          "./Images/",
                                          "Images (*.png *.jpg)")
-    if filename:
+    if filename and ok:
       path = Path(filename)
       self.user_img.setText(str(path))
-      self.image_selected.emit(str(path))
+      self.but_box.button(QDialogButtonBox.Ok).setDefault(True)
+      self.but_box.button(QDialogButtonBox.Ok).setFocus()
 
   def accept(self):
+    self.image_selected.emit(self.user_img.text())
     super().accept()
 
   def reject(self):
     super().reject()
+
 
 class ConfigSubmenuDialog(QDialog):
 
@@ -266,6 +280,7 @@ class ConfigSubmenuDialog(QDialog):
   # parent_key_id is the key in the current workspace that led to opening the config submenu dialog
   def __init__(self, parent, submenu_name=""):
     QDialog.__init__(self, parent)
+    self.setModal(True)
     self.submenu = ldw.SubmenuConfigurationWidget(self, "test")
 
     self.but_box = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)

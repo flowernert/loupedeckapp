@@ -138,10 +138,13 @@ class LdAction (QObject):
 
 
 class LdSubmenu (LdAction):
-  def __init__(self, name, action_type="submenu", action=LdWorkspace(), summary=""):
+  def __init__(self, name, action_type="submenu", action=None, summary=""):
     super().__init__(action_type, action, summary)
     self.a_type = "submenu"
-    self.action = action
+    if action:
+      self.action = action
+    else:
+      self.action = LdWorkspace()
     self.action.ws_profile = name
     self.summary = ""
     self.name = ""
@@ -160,7 +163,8 @@ class LdSubmenu (LdAction):
     lds = LdSubmenu(name=name, action=ws)
     return lds
 
-  def setName(self, str):
-    self.name = str
+  def setName(self, s):
+    self.name = s
     self.summary = "%s %s" % (self.a_type, self.name)
+    self.action.profile = self.name
 

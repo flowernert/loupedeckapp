@@ -88,6 +88,7 @@ class LoupedeckWidget (QWidget):
   def on_action_selected(self, action):
     b = self.sender().parent()
     b.parent().set_action(action, b.objectName())
+    self.update()
 
   def choose_image(self):
     ldApp = QApplication.instance()
@@ -100,65 +101,34 @@ class LoupedeckWidget (QWidget):
   def on_image_selected(self, img_path):
     b = self.sender().parent()
     b.parent().set_image(img_path)  # setting image to the tb/dis widget
+    self.update()
 
   def reset_images(self):
     for tb in self.touchbuttons.values():
       tb.set_image("")
     for d in self.displays.values():
       d.set_image("")
+    self.update()
 
+  def enable_ws_buttons(self):
+    self.set_ws_buttons(True)
 
-class SubmenuConfigurationWidget(LoupedeckWidget):
+  def disable_ws_buttons(self):
+    self.set_ws_buttons(False)
 
-  back_but_path = "Images/submenu_back_button.png"
-
-  def __init__(self, parent, submenu_name):
-    super().__init__(parent)
-
-    # remove workspace buttons that were set in super
+  def set_ws_buttons(self, enable):
     for mb in self.modebuttons:
-      self.layout().removeWidget(mb)
-    self.modebuttons = None
-
-    # disable top left display of being edited (reserved for back button)
-    top_left_display = self.displays["root_dis1L"]
-    top_left_display.action_edit.setDisabled(True)
-    top_left_display.action_edit.setVisible(False)
-    top_left_display.img_edit.setDisabled(True)
-    top_left_display.img_edit.setVisible(False)
-    top_left_display.set_image(self.back_but_path)
-
-    self.submenu_data = LdSubmenu(submenu_name)
-    self.submenu_data.action.images["dis1L"] = self.back_but_path
-    self.submenu_data.action.actions["dis1L"] = LdAction(action_type="back", action="back")
-
-  def choose_action(self):
-    dialog = ConfigActionDialog(self.sender())
-    dialog.action_selected.connect(self.on_action_selected)
-    dialog.show()
-
-  def on_action_selected(self, action):
-    key = self.sender().parent().objectName()
-    if action:
-      self.submenu_data.action.actions[key] = action
-    else:
-      self.submenu_data.action.actions[key] = LdAction()
-    super().on_action_selected(action)
+      mb.setEnabled(enable)
     self.update()
 
-  def choose_image(self):
-    dialog = ConfigImgDialog(self.sender())
-    dialog.image_selected.connect(self.on_image_selected)
-    dialog.show()
+  def enable_widget_configurable(self, widget_key):
+    self.set_widget_configurable(widget_key, True)
 
-  def on_image_selected(self, img_path):
-    key_id = self.sender().parent().objectName()
-    if img_path:
-      self.submenu_data.action.images[key_id] = img_path
-    else:
-      self.submenu_data.action.images[key_id] = ""
-    super().on_image_selected(img_path)
-    self.update()
+  def disable_widget_configurable(self, widget_key):
+    self.set_widget_configurable(widget_key, False)
+
+  def set_widget_configurable(self, widget_key, configurable):
+    self.elements[widget_key].set_configurable(configurable)
 
 
 class Widget (QFrame):
@@ -177,6 +147,15 @@ class Widget (QFrame):
       color = "green" if action.a_type != "none" else "black"
       self.action_edit.setToolTip(action.summary)
       self.action_edit.setStyleSheet("QPushButton#%s {color:%s;}" % (self.action_edit.objectName(), color))
+
+  def disable_configurable(self):
+    self.set_configurable(False)
+
+  def enable_configurable(self):
+    self.set_configurable(True)
+
+  def set_configurable(self, configurable):
+    self.action_edit.setVisible(configurable)
 
 
 class Display (Widget):
@@ -197,19 +176,30 @@ class Display (Widget):
       self.img_edit.setToolTip(img_path)
       self.img_edit.setStyleSheet("QPushButton#%s {color:green;}" % self.img_edit.objectName())
     else:
+      self.image = QPixmap()
       self.img_edit.setToolTip("")
       self.img_edit.setStyleSheet("QPushButton#%s {color:black;}" % self.img_edit.objectName())
 
+  def disable_configurable(self):
+    self.set_configurable(False)
+
+  def enable_configurable(self):
+    self.set_configurable(True)
+
+  def set_configurable(self, configurable):
+    self.img_edit.setVisible(configurable)
+    super().set_configurable(configurable)
+
   def paintEvent(self, qpaint_event):
-    if not self.image.isNull():
-      qpainter = QPainter(self)
-      # in order not to cover the widget borders
-      margin=2
-      size = self.size()
-      yshift = int((90-size.width())/2)
-      xsub = int(size.width()-margin*2)
-      ysub = int(size.width()-margin*2)
-      qpainter.drawPixmap(margin, yshift+margin, xsub, ysub, self.image)
+#    if not self.image.isNull():
+    qpainter = QPainter(self)
+    # in order not to cover the widget borders
+    margin=2
+    size = self.size()
+    yshift = int((90-size.width())/2)
+    xsub = int(size.width()-margin*2)
+    ysub = int(size.width()-margin*2)
+    qpainter.drawPixmap(margin, yshift+margin, xsub, ysub, self.image)
     QFrame.paintEvent(self, qpaint_event)
 
 
@@ -245,7 +235,6 @@ class Encoder (Widget):
         self.left_action_edit.setStyleSheet("QPushButton#%s {color:%s;}" % (self.left_action_edit.objectName(), color))
       else:
         print("load_ws unknown action key, please report to the developer %s" % key)
-#    self.update()
 
 
 class TouchButton (Display):

@@ -17,6 +17,11 @@ class LdApp(QApplication):
   save_to = pyqtSignal(str)
   load_from = pyqtSignal(str)
 
+  submenu_opened = pyqtSignal(str)
+  submenu_closed = pyqtSignal(str)
+
+  back_but_path = "Images/submenu_back_button.png"
+
   ws_keys = ["circle"] + [str(i) for i in range(1, 8)]
   selected_ws = ws_keys[0]
 
@@ -54,6 +59,10 @@ class LdApp(QApplication):
     self.load_from.connect(self.ld_widget.config.load)
     self.load_from.connect(self.profile.setText)
     self.profile.textChanged.connect(self.onProfileTextChanged)
+    self.submenu_opened.connect(self.ld_widget.disable_ws_buttons)
+    self.submenu_opened.connect(self.ld_widget.disable_widget_configurable)
+    self.submenu_closed.connect(self.ld_widget.enable_ws_buttons)
+    self.submenu_closed.connect(self.ld_widget.enable_widget_configurable)
     self.main_window.closeEvent = self.close
     self.main_window.show()
 
@@ -147,20 +156,29 @@ class LdApp(QApplication):
       self.current_menu().actions[sender_id] = LdAction()
 
   def set_img_to_touchbutton(self, image_path, keycode):
-    with open(image_path, "rb") as infile:
+    try:
+      with open(image_path, "rb") as infile:
         image = Image.open(infile).convert("RGBA").resize((90, 90))
-        self.ld_device.set_key_image(keycode, image)
+    except:
+      image = Image.new("RGBA", (90, 90), "black")
+    finally:
+      self.ld_device.set_key_image(keycode, image)
 
   def set_img_to_touchdisplay(self, image_path, side, row, auto_refresh=True):
-    with open(image_path, "rb") as infile:
+    if side == "L":
+      x = 0
+      display = "left"
+    else:
+      x = 480
+      display = "right"
+
+    try:
+      with open(image_path, "rb") as infile:
         image = Image.open(infile).convert("RGBA").resize((60,60)).crop((0,-15,60,75))
-        if side == "L":
-          x = 0
-          display = "left"
-        else:
-          x = 480
-          display = "right"
-        self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=auto_refresh)
+    except:
+      image = Image.new("RGBA", (60, 60), "black")
+    finally:
+      self.ld_device.draw_image(image, display=display, width=60, height=90, x=x, y=(row-1)*90, auto_refresh=auto_refresh)
 
   def current_ws(self):
     return self.config.workspaces[self.ws_keys.index(self.selected_ws)]
@@ -170,7 +188,7 @@ class LdApp(QApplication):
       return self.submenu_stack[-1].action
     else:
       return self.current_ws()
-    
+
   def get_ws(self, key):
     return self.config.workspaces[self.ws_keys.index(key)]
 
@@ -228,31 +246,35 @@ class LdApp(QApplication):
       if widget and action:
         widget.set_action(action, key)
 
-    self.ld_widget.update()
-
     location = self.selected_ws
     if self.submenu_stack:
       location = location + " > " + " > ".join([s.name for s in self.submenu_stack])
-      print(location)
 
     self.location.setText(location)
+    self.main_window.update()
 
   def on_submenu_is_opened(self, submenu):
-    submenu_ws = submenu.action
-    self.load_workspace(submenu_ws)
+    self.load_workspace(submenu.action)
+    self.submenu_opened.emit("root_dis1L")
 
-  def on_submenu_is_closed(self):
-    self.load_workspace(self.current_menu())
+  def on_submenu_is_closed(self, reload_menu=True):
+    if reload_menu:
+      self.load_workspace(self.current_menu())
+    if not self.submenu_stack:
+      self.submenu_closed.emit("root_dis1L")
 
   def on_touch_press(self, str_key, action):
-    if self.submenu_stack:  # if a submenu is currently opened and one of its key has been pressed
+    # if a submenu is currently opened and one of its key has been pressed
+    if self.submenu_stack:
       if action.a_type == "submenu":
+        self.submenu_stack.append(action)
         self.on_submenu_is_opened(action)
       elif action.a_type == "back":
         self.submenu_stack.pop()
         self.on_submenu_is_closed()
       else:
         action.execute()  # executes submenu command
+    # no submenu is currently opened
     else:
       if action.a_type == "submenu":
         self.submenu_stack.append(action)
@@ -260,7 +282,7 @@ class LdApp(QApplication):
       elif action.a_type == "back":
         print("back from basemenu, shouldn't happen!! Please report to the developper")
       else:
-        action = self.current_ws().actions[str_key]
+        action = self.current_menu().actions[str_key]
         action.execute() # executes main menu command
 
   def on_touchkey_press(self, key):
@@ -285,6 +307,12 @@ class LdApp(QApplication):
 
   def on_workspace_press(self, ws_key):
     current_ws = self.selected_ws
+
+    # switching workspace returns from any submenu context
+    if self.submenu_stack:
+      self.submenu_stack.clear()
+      self.on_submenu_is_closed(False)
+
     self.ld_device.set_button_color(current_ws, (63, 63, 63))  # dim white
     self.selected_ws = ws_key
     self.ld_device.set_button_color(ws_key, "green")  # selected button in green
