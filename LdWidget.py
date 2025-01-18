@@ -69,7 +69,7 @@ class LoupedeckWidget (QWidget):
 
     pages = [ModeButton(str(i)) for i in range(8)]
     _ = [layout.addWidget(pages[i], 4, i, alignment=Qt.AlignCenter) for i in range(8)]
-    self.modebuttons = pages
+    self.modebuttons.update({b: p for b, p in zip(QApplication.instance().ws_keys, pages)})
 
     self.elements.update(self.encoders)
     self.elements.update(self.displays)
@@ -117,7 +117,7 @@ class LoupedeckWidget (QWidget):
     self.set_ws_buttons(False)
 
   def set_ws_buttons(self, enable):
-    for mb in self.modebuttons:
+    for mb in self.modebuttons.values():
       mb.setEnabled(enable)
     self.update()
 
@@ -253,5 +253,7 @@ class ModeButton (QPushButton):
   def __init__(self, text):
     super().__init__(text)
     self.setFixedSize(70, 70)
-    self.setStyleSheet("QPushButton { border: 2px solid darkgrey; border-radius: 35px;}")
+    self.setStyleSheet("QPushButton { border: 2px solid darkgrey; border-radius: 35px;}"
+                       "QPushButton[state='selected'] {font-weight: bold;}"
+                       "QPushButton[state='unselected'] {font-weight:normal;}")
 

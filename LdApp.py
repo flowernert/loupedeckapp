@@ -77,6 +77,7 @@ class LdApp(QApplication):
         self.ld_device = ld[0]
         self.ld_device.set_callback(self.device_callback)
         self.init_ld_device()
+        self.on_workspace_press(self.ws_keys[0])
       elif try_cpt < 10:
         print(try_cpt)
         try_cpt +=1
@@ -251,7 +252,7 @@ class LdApp(QApplication):
       location = location + " > " + " > ".join([s.name for s in self.submenu_stack])
 
     self.location.setText(location)
-    self.main_window.update()
+    self.ld_widget.update()
 
   def on_submenu_is_opened(self, submenu):
     self.load_workspace(submenu.action)
@@ -307,6 +308,9 @@ class LdApp(QApplication):
 
   def on_workspace_press(self, ws_key):
     current_ws = self.selected_ws
+    mb = self.ld_widget.modebuttons[current_ws]
+    mb.setProperty("state", "unselected")
+    mb.style().polish(mb)
 
     # switching workspace returns from any submenu context
     if self.submenu_stack:
@@ -318,6 +322,10 @@ class LdApp(QApplication):
     self.ld_device.set_button_color(ws_key, "green")  # selected button in green
 
     self.load_workspace(self.get_ws(ws_key))
+
+    mb = self.ld_widget.modebuttons[ws_key]
+    mb.setProperty("state", "selected")
+    mb.style().polish(mb)
 
   def close(self, event):
     if hasattr(self, "ld_device") and self.ld_device:
