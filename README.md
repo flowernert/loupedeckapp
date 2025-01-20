@@ -8,6 +8,8 @@ This is an attemps to provide Linux platforms with something similar to what the
 
 ## Current status
 
+The following features are implemented, tested and functional on my Loupedeck Live device. Feedback from users would be highly appreciated at this point.
+
 Can program touchbutton images and can configure actions to be executed when a touchbutton or an encoder is pressed/rotated.
 
 At this point of the development the actions available are 
@@ -22,9 +24,13 @@ Can save images and actions to a profile file, can restore the profile, restorin
 
 Workspaces concept implemented on physical buttons 0-7
 
+## Currently working on
+
+Packaging the app for layman users being able to install and use it without hassle
+
 ## Next features on roadmap
 
-### In priority
+### Next features in priority
 
 * Implement a handler to get the currently focused app from the desktop manager and alter the current workspace based on it.
 
@@ -32,11 +38,11 @@ Workspaces concept implemented on physical buttons 0-7
 
 ### Next by order or priority
 
-Implement a configurator for left/right display, allowing to use them as a unique display or split them into several buttons
+* Implement a configurator for left/right display, allowing to use them as a unique display or split them into several buttons
 
-Provide a few ready-to-use workspace profiles for lazy users
+* Provide a few ready-to-use workspace profiles for lazy users
 
-Fancier GUI
+* Fancier GUI
 
 
 ## Pre-requisite
